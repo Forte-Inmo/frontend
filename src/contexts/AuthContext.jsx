@@ -71,14 +71,18 @@ export const AuthProvider = ({ children }) => {
     // Supabase emitirá INITIAL_SESSION, SIGNED_IN o SIGNED_OUT automáticamente al suscribirse.
     // No necesitamos llamar a getSession() manualmente en el mount, ya que causa deadlocks en React Strict Mode.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-
       try {
-        if (event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+          // Si nos sacan o hay un error, limpiamos todo rastro local
           setUser(null);
           setProfile(null);
           localStorage.removeItem('forte_profile_cache');
           localStorage.removeItem('forte_user_cache');
           localStorage.removeItem('forte_last_login');
+          // Limpiar también posibles tokens de supabase internos
+          Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('sb-')) localStorage.removeItem(key);
+          });
         } else if (session?.user) {
           setUser(session.user);
           localStorage.setItem('forte_user_cache', JSON.stringify(session.user));
@@ -88,6 +92,7 @@ export const AuthProvider = ({ children }) => {
           await fetchProfile(session.user);
         }
       } catch (err) {
+        console.error("Auth change error:", err);
       } finally {
         if (mounted) {
           setLoading(false);

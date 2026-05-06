@@ -112,13 +112,25 @@ export default function Usuarios() {
   const handleSave = async (e) => {
     if (e) e.preventDefault();
     try {
-      const { id, full_name, role_id } = editingProfile;
+      const { id, full_name, role_id, email } = editingProfile;
+      const payload = { 
+        full_name, 
+        role_id: role_id || null 
+      };
       
       if (id) {
         const { error } = await supabase
           .from('profiles')
-          .update({ full_name, role_id: role_id || null })
+          .update(payload)
           .eq('id', id);
+        if (error) throw error;
+      } else {
+        // Para nuevos usuarios, necesitamos el email
+        if (!email) throw new Error("El email es obligatorio para nuevos perfiles.");
+        
+        const { error } = await supabase
+          .from('profiles')
+          .insert([{ ...payload, email }]);
         if (error) throw error;
       }
       
