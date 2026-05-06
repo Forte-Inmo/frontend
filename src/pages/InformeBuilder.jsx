@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -28,11 +28,13 @@ import {
   MapPin,
   ChevronUp,
   ChevronDown,
-  LogOut
+  LogOut,
+  Loader2
 } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { useRealtimeCursors } from '../hooks/useRealtimeCursors';
 import { useSettings } from '../contexts/SettingsContext';
+import { useExportPDF } from '../hooks/useExportPDF';
 
 // Componentes de las páginas
 import CaratulaPage from '../components/ReportPages/CaratulaPage';
@@ -45,10 +47,13 @@ import TextoFotosPage from '../components/ReportPages/TextoFotosPage';
 export default function InformeBuilder() {
   const { informeId: id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
+  const { exportPDF } = useExportPDF();
   const [loading, setLoading] = useState(true);
   const [informe, setInforme] = useState(null);
   const { settings } = useSettings();
+  const campoMetadata = informe?.campo;
   const brandColors = (settings?.brand_colors && Object.keys(settings.brand_colors).length > 0) ? settings.brand_colors : {
     primary: '#107549',
     secondary: '#003399',
@@ -101,6 +106,23 @@ export default function InformeBuilder() {
       saveInforme();
     }
   }, [debouncedPagesData]);
+
+  // Efecto para auto-exportación
+  useEffect(() => {
+    if (searchParams.get('export') === 'true' && pagesData.length > 0 && !loading) {
+      const timer = setTimeout(async () => {
+        try {
+          const filename = `${informe?.titulo || 'Informe'}-${campoMetadata?.nombre || 'Terreno'}.pdf`;
+          await exportPDF(pagesData.length, filename);
+          // Opcional: Cerrar la ventana después de exportar
+          window.close();
+        } catch (error) {
+          console.error("Error en auto-export:", error);
+        }
+      }, 3000); // 3 segundos para asegurar que todo el contenido (gráficos, mapas) renderice
+      return () => clearTimeout(timer);
+    }
+  }, [loading, pagesData.length, searchParams, informe, campoMetadata]);
 
   const fetchInforme = async () => {
     if (!id || id === 'undefined') {
@@ -320,7 +342,6 @@ export default function InformeBuilder() {
   if (loading) return <div className="p-10 text-center flex h-screen items-center justify-center text-emerald-800 font-bold text-xl">Cargando Informe...</div>;
 
   const activePage = pagesData[activePageIndex];
-  const campoMetadata = informe?.campo;
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col font-sans">
@@ -1174,6 +1195,26 @@ export default function InformeBuilder() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de Exportación */}
+      {searchParams.get('export') === 'true' && (
+        <div className="fixed inset-0 z-[999] bg-emerald-950/90 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8">
+          <div className="relative mb-8">
+            <div className="w-24 h-24 bg-emerald-500 rounded-[2rem] flex items-center justify-center text-white shadow-2xl animate-bounce">
+              <Download className="w-10 h-10" />
+            </div>
+            <div className="absolute inset-0 bg-emerald-400 rounded-[2rem] animate-ping opacity-20"></div>
+          </div>
+          <h2 className="text-3xl font-black text-white uppercase tracking-tight mb-4">Generando Documento PDF</h2>
+          <p className="text-emerald-300 font-bold uppercase tracking-[0.2em] text-sm animate-pulse flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            No cierres esta ventana...
+          </p>
+          <div className="mt-12 w-64 h-1.5 bg-emerald-900/50 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-400 animate-progress-indefinite"></div>
           </div>
         </div>
       )}

@@ -212,7 +212,7 @@ export default function DinamicaPage({
                 }}
               >
                 {isEditMode && (
-                  <div className="absolute top-4 right-4 text-gray-400 group-hover:text-emerald-500 transition-colors pointer-events-none">
+                  <div className="absolute top-4 right-4 text-gray-400 group-hover:text-emerald-500 transition-colors pointer-events-none export-hidden">
                     <GripVertical className="w-5 h-5" />
                   </div>
                 )}
@@ -379,7 +379,7 @@ export default function DinamicaPage({
         </div>
 
         {/* Page Badge */}
-        <div className="absolute bottom-8 left-8 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+        <div className="absolute bottom-8 left-8 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 export-hidden">
            <span className="text-white text-[10px] font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
         </div>
 

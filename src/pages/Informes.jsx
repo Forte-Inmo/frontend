@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabase';
 import {
   FileText, Plus, Search, Calendar, MapPin,
   ChevronRight, Trash2, Clock, X, Save,
-  Layers, AlertCircle
+  Layers, AlertCircle, Download, Loader2, History
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useExportPDF } from '../hooks/useExportPDF';
 
 /* ─── UI Primitives ────────────────────────────────────────── */
 
@@ -43,8 +44,9 @@ function SectionCard({ icon: Icon, title, color = 'emerald', children }) {
 
 export default function Informes() {
   const navigate = useNavigate();
-  const { user, hasPermission } = useAuth();
+  const { user, profile, hasPermission } = useAuth();
   const canManage = hasPermission('informes:manage');
+  const { exportPDF } = useExportPDF();
   const [informes, setInformes] = useState(() => {
     try {
       const cached = localStorage.getItem('forte_informes_cache');
@@ -66,6 +68,24 @@ export default function Informes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [selectedCampoId, setSelectedCampoId] = useState('');
+  const [exportingId, setExportingId] = useState(null);
+  
+  // Versiones PDF state
+  const [versionesModal, setVersionesModal] = useState(null);
+  const [versiones, setVersiones] = useState([]);
+  const [loadingVersiones, setLoadingVersiones] = useState(false);
+
+  const handleVerVersiones = async (informe) => {
+    setVersionesModal(informe.id);
+    setLoadingVersiones(true);
+    const { data } = await supabase
+      .from('informe_versiones')
+      .select('*')
+      .eq('informe_id', informe.id)
+      .order('version_number', { ascending: false });
+    setVersiones(data || []);
+    setLoadingVersiones(false);
+  };
 
   const handleClose = () => {
     setIsClosing(true);
@@ -98,7 +118,7 @@ export default function Informes() {
       const [infRes, camposRes] = await Promise.all([
         supabase
           .from('informes')
-          .select('*, campos(*)')
+          .select('*, campos(*), versiones_count:informe_versiones(count)')
           .order('created_at', { ascending: false }),
         supabase
           .from('campos')
@@ -168,6 +188,29 @@ export default function Informes() {
     i.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     i.campos?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleExport = async (informe) => {
+    try {
+      setExportingId(informe.id);
+      
+      const pageCount = informe.pages_data?.length || 1;
+      
+      await exportPDF({
+        informeId: informe.id,
+        pageCount: pageCount,
+        nombre: informe.titulo,
+        campoNombre: informe.campos?.nombre,
+        userId: user?.id,
+        userName: profile?.full_name || user?.email,
+      });
+
+    } catch (error) {
+      console.error("Error al iniciar exportación:", error);
+      alert(error.message || "Error al exportar PDF");
+    } finally {
+      setExportingId(null);
+    }
+  };
 
   const camposDisponibles = campos.filter(campo =>
     !informes.some(inf => inf.campo_id === campo.id)
@@ -248,12 +291,42 @@ export default function Informes() {
                   {informe.estado}
                 </div>
                 {canManage && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteInforme(informe.id); }}
-                    className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleExport(informe); }}
+                      disabled={exportingId === informe.id}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:border-emerald-500 disabled:opacity-50"
+                    >
+                      {exportingId === informe.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> 
+                          <span>Generando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Exportar PDF</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleVerVersiones(informe); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-gray-100"
+                    >
+                      <History className="w-3.5 h-3.5" /> Versiones
+                      {informe.versiones_count?.[0]?.count > 0 && (
+                        <span className="bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full text-[8px]">
+                          {informe.versiones_count[0].count}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteInforme(informe.id); }}
+                      className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 )}
                 <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 group-hover:bg-emerald-600 group-hover:text-white transition-all">
                   <ChevronRight className="w-5 h-5" />
@@ -347,6 +420,76 @@ export default function Informes() {
           </div>
         </div>
       )}
+
+      {/* Modal de Versiones PDF */}
+      {versionesModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+            onClick={() => setVersionesModal(null)} 
+          />
+          <div className="relative w-full max-w-lg bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-slide-up-fade">
+            
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/60">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Historial de PDFs</h2>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                  Versiones generadas
+                </p>
+              </div>
+              <button onClick={() => setVersionesModal(null)} className="p-2 hover:bg-gray-200 rounded-xl transition text-gray-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Lista de versiones */}
+            <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {loadingVersiones ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto" />
+                </div>
+              ) : versiones.length === 0 ? (
+                <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <History className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-gray-400 uppercase tracking-wide">Ningún PDF generado aún</p>
+                </div>
+              ) : versiones.map((v) => (
+                <div key={v.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:border-emerald-200 transition-colors">
+                  <div className="flex items-center gap-4">
+                    {/* Badge de versión */}
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center font-black text-sm">
+                      v{v.version_number}
+                    </div>
+                    <div>
+                      <div className="text-xs font-black text-gray-800">
+                        {new Date(v.created_at).toLocaleDateString('es-AR', { 
+                          day: '2-digit', month: 'short', year: 'numeric',
+                          hour: '2-digit', minute: '2-digit'
+                        })}
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">
+                        por {v.created_by_name}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Botón descargar */}
+                  <a 
+                    href={v.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-600 rounded-xl border border-gray-200 hover:border-emerald-200 transition-all font-black text-[9px] uppercase tracking-widest shadow-sm"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Descargar
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

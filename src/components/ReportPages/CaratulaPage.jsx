@@ -14,7 +14,7 @@ export default function CaratulaPage({
   isEditMode = true
 }) {
   const LockBadge = ({ userName }) => (
-    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap">
+    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
       {userName} editando...
     </div>
@@ -161,7 +161,7 @@ export default function CaratulaPage({
         </div>
 
         {/* Page Badge */}
-        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20">
+        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden">
           <span className="text-white text-xs font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
         </div>
 

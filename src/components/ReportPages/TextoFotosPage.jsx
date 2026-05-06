@@ -12,7 +12,7 @@ export default function TextoFotosPage({
   isEditMode = true 
 }) {
   const LockBadge = ({ userName }) => (
-    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap">
+    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
       {userName} editando...
     </div>
@@ -84,7 +84,7 @@ export default function TextoFotosPage({
                  <span className="font-black text-sm tracking-tighter">FORTE</span>
               </div>
            </div>
-           <div className={`${page.fondo_url ? 'bg-white/20 backdrop-blur-md border border-white/20' : 'bg-gray-100'} px-4 py-1.5 rounded-xl`}>
+           <div className={`${page.fondo_url ? 'bg-white/20 backdrop-blur-md border border-white/20' : 'bg-gray-100'} px-4 py-1.5 rounded-xl export-hidden`}>
               <span className={`text-[10px] font-black uppercase tracking-widest ${page.fondo_url ? 'text-white' : 'text-gray-400'}`}>Página {pageIndex + 1}</span>
            </div>
         </div>

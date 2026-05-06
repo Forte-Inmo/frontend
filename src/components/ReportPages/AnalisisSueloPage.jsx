@@ -247,7 +247,7 @@ export default function AnalisisSueloPage({
       </div>
 
       {/* ── Page Badge ── */}
-      <div className="absolute bottom-8 left-8 bg-white/15 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20">
+      <div className="absolute bottom-8 left-8 bg-white/15 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 export-hidden">
         <span className="text-white text-[9px] font-black uppercase tracking-widest">Pág. {pageIndex + 1}</span>
       </div>
     </div>
