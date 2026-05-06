@@ -2,6 +2,7 @@ const express = require('express');
 const puppeteer = require('puppeteer');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
+const ws = require('ws');
 
 const app = express();
 app.use(express.json());
@@ -15,7 +16,15 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.warn('SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY deben estar definidos en el entorno');
 }
 
-const supabase = createClient(supabaseUrl || '', supabaseServiceKey || '');
+const supabase = createClient(
+  supabaseUrl || '', 
+  supabaseServiceKey || '',
+  {
+    realtime: {
+      transport: ws,
+    },
+  }
+);
 
 app.post('/generate', async (req, res) => {
   const { url, filename, informeId, userId, userName } = req.body;

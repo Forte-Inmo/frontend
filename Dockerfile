@@ -46,7 +46,9 @@ RUN apt-get update && apt-get install -y \
   libxss1 \
   libxtst6 \
   --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -f /etc/nginx/sites-enabled/default \
+  && rm -f /etc/nginx/conf.d/default.conf
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
@@ -55,7 +57,7 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 COPY --from=react-builder /app/dist /usr/share/nginx/html
 
 # Copiar nginx.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/app.conf
 
 # Copiar pdf-service
 WORKDIR /pdf-service
