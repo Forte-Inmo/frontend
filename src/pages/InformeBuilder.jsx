@@ -49,7 +49,7 @@ export default function InformeBuilder() {
   const [loading, setLoading] = useState(true);
   const [informe, setInforme] = useState(null);
   const { settings } = useSettings();
-  const brandColors = settings?.brand_colors || {
+  const brandColors = (settings?.brand_colors && Object.keys(settings.brand_colors).length > 0) ? settings.brand_colors : {
     primary: '#107549',
     secondary: '#003399',
     accent: '#ccff00',
@@ -113,7 +113,7 @@ export default function InformeBuilder() {
         .from('informes')
         .select(`
           *,
-          campo:campos(nombre, latitud, longitud)
+          campo:campos(nombre, latitud, longitud, superficie_total, provincia, departamento)
         `)
         .eq('id', id)
         .single();
@@ -649,34 +649,29 @@ export default function InformeBuilder() {
                     </div>
                   </div>
 
-                  {/* Estilo de Bloque (Solo para texto) */}
-                  {activePage.blocks[activeBlockIndex].type === 'text' && (
-                    <div className="space-y-4">
-                      <FieldLabel>Estilo de Bloque</FieldLabel>
-                      <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
+                  {/* Estilo de Bloque */}
+                  <div className="space-y-4">
+                    <FieldLabel>Estilo de Bloque</FieldLabel>
+                    <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
+                      {[
+                        { id: 'standard', label: 'Estándar' },
+                        { id: 'fade-top', label: 'Fundido' },
+                        { id: 'transparent', label: 'Transparente' }
+                      ].map(option => (
                         <button 
+                          key={option.id}
                           onClick={() => {
                             const newBlocks = [...activePage.blocks];
-                            newBlocks[activeBlockIndex].variant = 'standard';
+                            newBlocks[activeBlockIndex].variant = option.id;
                             updatePage(activePageIndex, 'blocks', newBlocks);
                           }}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${ (!activePage.blocks[activeBlockIndex].variant || activePage.blocks[activeBlockIndex].variant === 'standard') ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600' }`}
+                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${ (activePage.blocks[activeBlockIndex].variant || 'standard') === option.id ? 'bg-emerald-500 shadow-md text-white scale-105' : 'text-gray-400 hover:text-gray-600' }`}
                         >
-                          ESTÁNDAR
+                          {option.label}
                         </button>
-                        <button 
-                          onClick={() => {
-                            const newBlocks = [...activePage.blocks];
-                            newBlocks[activeBlockIndex].variant = 'fade-top';
-                            updatePage(activePageIndex, 'blocks', newBlocks);
-                          }}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${ activePage.blocks[activeBlockIndex].variant === 'fade-top' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-400 hover:text-gray-600' }`}
-                        >
-                          FUNDIDO
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
 
                   {/* Image-specific Controls */}
                   {activePage.blocks[activeBlockIndex].type === 'image' && (
@@ -732,32 +727,69 @@ export default function InformeBuilder() {
                     </>
                   )}
 
-
-
                   {/* Ancho del Bloque */}
                   {activePage.blocks[activeBlockIndex].type !== 'title' && (
                     <div className="space-y-4">
-                    <FieldLabel>Ancho del Bloque</FieldLabel>
-                    <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
-                      {[
-                        { id: 'full', label: '1/1' },
-                        { id: 'half', label: '1/2' },
-                        { id: 'quarter', label: '1/4' }
-                      ].map(option => (
-                        <button 
-                          key={option.id}
-                          onClick={() => {
-                            const newBlocks = [...activePage.blocks];
-                            newBlocks[activeBlockIndex].width = option.id;
-                            updatePage(activePageIndex, 'blocks', newBlocks);
-                          }}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${ (activePage.blocks[activeBlockIndex].width || 'full') === option.id ? 'bg-white shadow-md text-emerald-600 scale-105' : 'text-gray-400 hover:text-gray-600' }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                      <FieldLabel>Ancho del Bloque</FieldLabel>
+                      
+                      <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
+                        {[
+                          { id: 'full', label: '1/1' },
+                          { id: 'half', label: '1/2' },
+                          { id: 'custom', label: 'Custom' }
+                        ].map(option => {
+                          const currentW = activePage.blocks[activeBlockIndex].width || 'full';
+                          const isActive = option.id === 'custom' 
+                            ? (typeof currentW === 'number' || currentW === 'quarter')
+                            : currentW === option.id;
+
+                          return (
+                            <button 
+                              key={option.id}
+                              onClick={() => {
+                                const newBlocks = [...activePage.blocks];
+                                newBlocks[activeBlockIndex].width = option.id === 'custom' ? 25 : option.id;
+                                updatePage(activePageIndex, 'blocks', newBlocks);
+                              }}
+                              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${ isActive ? 'bg-white shadow-md text-emerald-600 scale-105' : 'text-gray-400 hover:text-gray-600' }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Slider Custom */}
+                      {(() => {
+                        const w = activePage.blocks[activeBlockIndex].width || 'full';
+                        return (typeof w === 'number' || w === 'quarter');
+                      })() && (
+                        <div className="px-1 mt-2">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ancho Manual</span>
+                            <span className="text-[10px] font-black text-emerald-600">
+                              {activePage.blocks[activeBlockIndex].width === 'quarter' ? '25%' : `${activePage.blocks[activeBlockIndex].width}%`}
+                            </span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="10"
+                            max="100"
+                            step="5"
+                            value={activePage.blocks[activeBlockIndex].width === 'quarter' ? 25 : activePage.blocks[activeBlockIndex].width}
+                            onChange={(e) => {
+                              const newBlocks = [...activePage.blocks];
+                              newBlocks[activeBlockIndex].width = parseInt(e.target.value);
+                              updatePage(activePageIndex, 'blocks', newBlocks);
+                            }}
+                            className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                          />
+                        </div>
+                      )}
                     </div>
-                    {(activePage.blocks[activeBlockIndex].width && activePage.blocks[activeBlockIndex].width !== 'full') && (
+                  )}
+
+                  {(activePage.blocks[activeBlockIndex].width && activePage.blocks[activeBlockIndex].width !== 'full') && (
                       <div className="flex bg-gray-50 p-1 rounded-xl gap-1 mt-2">
                         {['left', 'center', 'right'].map(align => (
                           <button 
@@ -774,9 +806,6 @@ export default function InformeBuilder() {
                         ))}
                       </div>
                     )}
-                  </div>
-                  )}
-
 
                   <div className="h-px bg-gray-100"></div>
 
@@ -1130,7 +1159,12 @@ export default function InformeBuilder() {
                   { id: 'DINAMICA', name: 'Página Dinámica', desc: 'Bloques flexibles de texto e imágenes.', icon: Layers, color: 'purple' },
                   { id: 'TEXTO_FOTOS', name: 'Contenido Mixto', desc: 'Texto clásico con galería de fotos.', icon: Type, color: 'rose' },
                   { id: 'ANALISIS_SUELO', name: 'Análisis de Suelo', desc: 'Gráficos técnicos y resultados.', icon: PieChart, color: 'indigo' },
-                ].map((item) => (
+                ].filter(item => {
+                  // Caratula y Ubicación son siempre obligatorias/visibles
+                  if (['CARATULA', 'UBICACION'].includes(item.id)) return true;
+                  // Para las demás, verificamos settings. Si no hay settings o el campo no existe, asumimos true
+                  return settings?.enabled_pages?.[item.id] !== false;
+                }).map((item) => (
                   <button key={item.id} onClick={() => addPage(item.id)} className="group flex flex-col bg-gray-50 hover:bg-white rounded-[32px] border border-gray-100 hover:border-emerald-200 p-6 transition-all hover:shadow-xl text-left active:scale-[0.98]">
                     <div className={`w-14 h-14 rounded-2xl bg-${item.color}-100 text-${item.color}-600 flex items-center justify-center mb-6`}><item.icon className="w-7 h-7" /></div>
                     <h4 className="text-lg font-black text-gray-900 uppercase mb-2">{item.name}</h4>

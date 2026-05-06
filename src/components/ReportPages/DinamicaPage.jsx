@@ -185,19 +185,26 @@ export default function DinamicaPage({
                 style={{ 
                   backgroundColor: block.type === 'title' ? 'transparent' 
                     : (block.type === 'image' && block.showImageBg === false) ? 'transparent'
+                    : block.variant === 'transparent' ? 'transparent'
                     : (block.variant === 'fade-top' ? 'transparent' : block.bgColor),
                   backgroundImage: block.variant === 'fade-top' 
                     ? `linear-gradient(to bottom, ${block.bgColor} 0%, transparent 100%)` 
                     : 'none',
                   color: block.textColor,
-                  borderRadius: (block.variant === 'fade-top' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' : '2rem',
-                  padding: block.variant === 'fade-top' ? '1.5rem 1.5rem 3rem' 
+                  borderRadius: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' : '2rem',
+                  padding: block.variant === 'transparent' ? '0'
+                    : block.variant === 'fade-top' ? '1.5rem 1.5rem 3rem' 
                     : (block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' 
                     : '1.5rem',
-                  boxShadow: (block.variant === 'fade-top' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? 'none' : '0 15px 45px rgba(0,0,0,0.12)',
+                  boxShadow: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? 'none' : '0 15px 45px rgba(0,0,0,0.12)',
                   transform: `translateY(${block.yOffset || 0}mm)`,
                   cursor: isEditMode ? (dragState.isDragging ? 'grabbing' : 'grab') : 'default',
-                  width: block.type === 'title' ? 'auto' : (block.width === 'half' ? '50%' : block.width === 'quarter' ? '25%' : '100%'),
+                  width: block.type === 'title' ? 'auto' : (() => {
+                    if (!block.width || block.width === 'full') return '100%';
+                    if (block.width === 'half') return '50%';
+                    if (block.width === 'quarter') return '25%';
+                    return `${block.width}%`;
+                  })(),
                   marginLeft: block.align === 'center' ? 'auto' : block.align === 'right' ? 'auto' : '0',
                   marginRight: block.align === 'center' ? 'auto' : block.align === 'left' ? 'auto' : '0',
                   flexGrow: block.imageScale === 'full' ? 1 : 0,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Lock, Settings, Building2, Upload, Globe, Image, Phone, MapPin, CheckCircle2, Loader2, Palette } from 'lucide-react';
+import { Lock, Settings, Building2, Upload, Globe, Image, Phone, MapPin, CheckCircle2, Loader2, Palette, Layers, PieChart, Type } from 'lucide-react';
 
 /* ─── Reusable field components ─────────────────────────── */
 
@@ -158,6 +158,7 @@ export default function Ajustes() {
         org2_address: formData.org2_address,
         org2_phone: formData.org2_phone,
         brand_colors: formData.brand_colors || {},
+        enabled_pages: formData.enabled_pages || {},
       };
 
       const { error } = await supabase
@@ -327,6 +328,44 @@ export default function Ajustes() {
               />
               <span className="text-[10px] font-black text-gray-400 uppercase">{formData.brand_colors?.dark || '#001a4d'}</span>
             </div>
+          </div>
+        </SectionCard>
+\x20\x20\x20\x20\x20\x20\x20\x20
+        <SectionCard icon={Layers} title="Módulos del Generador de Informes">
+          <p className="text-xs text-gray-400 mb-6 -mt-2 px-1">Activá o desactivá los tipos de páginas que estarán disponibles para crear nuevos informes.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { id: 'SITUACION_ACTUAL', name: 'Situación Actual', icon: Image },
+              { id: 'DINAMICA', name: 'Página Dinámica', icon: Layers },
+              { id: 'TEXTO_FOTOS', name: 'Contenido Mixto', icon: Type },
+              { id: 'ANALISIS_SUELO', name: 'Análisis de Suelo', icon: PieChart },
+            ].map((module) => (
+              <div key={module.id} className="flex items-center justify-between bg-gray-50 p-5 rounded-[2rem] border border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white rounded-2xl shadow-sm text-gray-400">
+                    <module.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-black text-gray-800 uppercase tracking-tight">{module.name}</span>
+                    <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Módulo técnico</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={!canManage}
+                  onClick={() => {
+                    const enabled_pages = { ...(formData.enabled_pages || {}) };
+                    // Por defecto si no existe se asume true, por lo que el primer toggle lo pasaría a false
+                    const currentStatus = enabled_pages[module.id] !== false;
+                    enabled_pages[module.id] = !currentStatus;
+                    setFormData(prev => ({ ...prev, enabled_pages }));
+                  }}
+                  className={`w-14 h-7 rounded-full transition-all relative ${ (formData.enabled_pages?.[module.id] !== false) ? 'bg-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-gray-200' }`}
+                >
+                  <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${ (formData.enabled_pages?.[module.id] !== false) ? 'right-1' : 'left-1' }`} />
+                </button>
+              </div>
+            ))}
           </div>
         </SectionCard>
 

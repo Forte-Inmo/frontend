@@ -86,8 +86,8 @@ function SelectInput({ icon: Icon, children, ...props }) {
 function SectionCard({ icon: Icon, title, color = 'emerald', children }) {
   const colorMap = {
     emerald: 'bg-emerald-100 text-emerald-700',
-    blue:    'bg-blue-100 text-blue-700',
-    amber:   'bg-amber-100 text-amber-700',
+    blue: 'bg-blue-100 text-blue-700',
+    amber: 'bg-amber-100 text-amber-700',
   };
   return (
     <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
@@ -122,9 +122,9 @@ function MapPicker({ point, setPoint, coords, setCoords, isDelimiting }) {
     <>
       {point && <Marker position={point} />}
       {coords.length > 0 && (
-        <Polygon 
-          positions={coords} 
-          pathOptions={{ fillColor: '#107549', fillOpacity: 0.3, color: '#107549', weight: 2 }} 
+        <Polygon
+          positions={coords}
+          pathOptions={{ fillColor: '#107549', fillOpacity: 0.3, color: '#107549', weight: 2 }}
         />
       )}
       {coords.map((c, i) => (
@@ -222,7 +222,7 @@ export default function Campos() {
         .from('campos')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       const result = data || [];
       setCampos(result);
@@ -268,7 +268,7 @@ export default function Campos() {
         // Actualización local inmediata
         if (data) setCampos(prev => [data, ...prev]);
       }
-      
+
       handleClose();
     } catch (error) {
       console.error('Supabase save error:', error);
@@ -297,7 +297,7 @@ export default function Campos() {
         .delete()
         .eq('id', id);
       if (error) throw error;
-      
+
       // Actualización local inmediata
       setCampos(prev => prev.filter(c => c.id !== id));
     } catch (error) {
@@ -327,11 +327,11 @@ export default function Campos() {
             <div className="p-3 bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-200">
               <Compass className="w-8 h-8 text-white" />
             </div>
-            Catastro de Terrenos
+            Camposs
           </h1>
           <p className="text-gray-500 font-medium mt-2 flex items-center gap-2">
             <Layers className="w-4 h-4 text-emerald-500" />
-            {campos.length} lotes registrados en Supabase
+            {campos.length} lotes registrados
           </p>
         </div>
 
@@ -352,7 +352,7 @@ export default function Campos() {
               className="shrink-0 bg-gray-900 text-white px-5 sm:px-8 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-black transition-all shadow-xl shadow-gray-200 active:scale-95"
             >
               <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Nuevo Terreno</span>
+              <span className="hidden sm:inline">Nuevo Campo</span>
               <span className="sm:hidden">Nuevo</span>
             </button>
           )}
@@ -375,13 +375,13 @@ export default function Campos() {
             >
               <div className="h-40 bg-gradient-to-br from-gray-100 to-gray-50 relative overflow-hidden">
                 {(campo.coordenadas_poligono?.length > 0 || (campo.latitud && campo.longitud)) ? (
-                  <MapContainer 
+                  <MapContainer
                     center={
-                      campo.latitud && campo.longitud 
-                        ? [parseFloat(campo.latitud), parseFloat(campo.longitud)] 
+                      campo.latitud && campo.longitud
+                        ? [parseFloat(campo.latitud), parseFloat(campo.longitud)]
                         : campo.coordenadas_poligono[0]
-                    } 
-                    zoom={12} 
+                    }
+                    zoom={12}
                     className="h-full w-full z-0"
                     zoomControl={false}
                     dragging={false}
@@ -398,9 +398,9 @@ export default function Campos() {
                       <Marker position={[parseFloat(campo.latitud), parseFloat(campo.longitud)]} />
                     )}
                     {campo.coordenadas_poligono?.length > 0 && (
-                      <Polygon 
-                        positions={campo.coordenadas_poligono} 
-                        pathOptions={{ fillColor: '#107549', fillOpacity: 0.3, color: '#107549', weight: 2 }} 
+                      <Polygon
+                        positions={campo.coordenadas_poligono}
+                        pathOptions={{ fillColor: '#107549', fillOpacity: 0.3, color: '#107549', weight: 2 }}
                       />
                     )}
                   </MapContainer>
@@ -412,7 +412,7 @@ export default function Campos() {
                     </div>
                   </>
                 )}
-                
+
                 {canManage && (
                   <div className="absolute top-4 right-4 z-[10] flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
                     <button onClick={() => handleEdit(campo)} className="p-2.5 bg-white/95 backdrop-blur-sm text-gray-600 rounded-xl hover:bg-emerald-600 hover:text-white transition shadow-md">
@@ -467,28 +467,28 @@ export default function Campos() {
         </div>
       ) : (
         <div className="bg-white rounded-[3rem] border-2 border-dashed border-gray-100 p-20 flex flex-col items-center justify-center text-center">
-           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-300">
-              <Compass className="w-10 h-10" />
-           </div>
-           <h3 className="text-2xl font-black text-gray-900 mb-2">No se encontraron terrenos</h3>
-           <p className="text-gray-500 font-medium max-w-sm mb-8">Comienza registrando tu primer establecimiento en el catastro.</p>
-           {canManage && (
-             <button 
-               onClick={openNew}
-               className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-xl shadow-emerald-100"
-             >
-               Crear Primer Terreno
-             </button>
-           )}
+          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-300">
+            <Compass className="w-10 h-10" />
+          </div>
+          <h3 className="text-2xl font-black text-gray-900 mb-2">No se encontraron campos</h3>
+          <p className="text-gray-500 font-medium max-w-sm mb-8">Comienza registrando tu primer campo.</p>
+          {canManage && (
+            <button
+              onClick={openNew}
+              className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-xl shadow-emerald-100"
+            >
+              Crear Primer Campo
+            </button>
+          )}
         </div>
       )}
 
       {/* ── Slide-over Panel (Floating Style) ── */}
       {isModalOpen && (
-        <div 
+        <div
           className={`fixed inset-0 z-[100] flex justify-end p-4 bg-gray-900/40 backdrop-blur-sm transition-all duration-400 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
         >
-          <div 
+          <div
             className={`bg-white w-full max-w-xl h-full shadow-2xl rounded-[2.5rem] flex flex-col border border-gray-100 overflow-hidden
               ${isClosing ? 'animate-slide-out-right' : 'animate-slide-in-right'}`}
           >
@@ -584,59 +584,58 @@ export default function Campos() {
                 </div>
 
                 <div className="space-y-4">
-                   <div className="flex justify-between items-end">
-                      <FieldLabel>Ubicación y Delimitación del Lote</FieldLabel>
-                      <div className="text-[10px] text-gray-400 font-medium bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-                         {isDelimiting ? 'Modo Polígono: Haz clic para dibujar' : 'Modo Punto: Haz clic para fijar ubicación'}
-                      </div>
-                   </div>
-                   <div className="h-[300px] rounded-2xl overflow-hidden border-2 border-gray-100 shadow-inner relative">
-                      <MapContainer 
-                        center={mapCenter} 
-                        zoom={13} 
-                        className="h-full w-full z-0"
+                  <div className="flex justify-between items-end">
+                    <FieldLabel>Ubicación y Delimitación del Lote</FieldLabel>
+                    <div className="text-[10px] text-gray-400 font-medium bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                      {isDelimiting ? 'Modo Polígono: Haz clic para dibujar' : 'Modo Punto: Haz clic para fijar ubicación'}
+                    </div>
+                  </div>
+                  <div className="h-[300px] rounded-2xl overflow-hidden border-2 border-gray-100 shadow-inner relative">
+                    <MapContainer
+                      center={mapCenter}
+                      zoom={13}
+                      className="h-full w-full z-0"
+                    >
+                      <TileLayer
+                        url="https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}"
+                        subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                        attribution="&copy; Google Maps"
+                      />
+                      <MapPicker
+                        point={formData.latitud && formData.longitud ? [parseFloat(formData.latitud), parseFloat(formData.longitud)] : null}
+                        setPoint={(coord) => {
+                          setFormData(prev => ({ ...prev, latitud: coord[0].toString(), longitud: coord[1].toString() }));
+                          // Eliminamos setMapCenter(coord) para evitar el zoom molesto
+                        }}
+                        coords={formData.coordenadas_poligono}
+                        setCoords={(newCoords) => setFormData(prev => ({ ...prev, coordenadas_poligono: newCoords }))}
+                        isDelimiting={isDelimiting}
+                      />
+                      <ChangeView center={mapCenter} />
+                    </MapContainer>
+                    <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsDelimiting(!isDelimiting)}
+                        className={`p-2 rounded-xl text-sm font-bold shadow-lg border transition-all px-4 flex items-center gap-2 ${isDelimiting
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-white/90 backdrop-blur-md text-emerald-700 border-emerald-100 hover:bg-emerald-50'
+                          }`}
                       >
-                        <TileLayer
-                          url="https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}"
-                          subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-                          attribution="&copy; Google Maps"
-                        />
-                        <MapPicker 
-                          point={formData.latitud && formData.longitud ? [parseFloat(formData.latitud), parseFloat(formData.longitud)] : null}
-                          setPoint={(coord) => {
-                            setFormData(prev => ({ ...prev, latitud: coord[0].toString(), longitud: coord[1].toString() }));
-                            // Eliminamos setMapCenter(coord) para evitar el zoom molesto
-                          }}
-                          coords={formData.coordenadas_poligono} 
-                          setCoords={(newCoords) => setFormData(prev => ({ ...prev, coordenadas_poligono: newCoords }))}
-                          isDelimiting={isDelimiting}
-                        />
-                        <ChangeView center={mapCenter} />
-                      </MapContainer>
-                      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-                         <button 
-                            type="button"
-                            onClick={() => setIsDelimiting(!isDelimiting)}
-                            className={`p-2 rounded-xl text-sm font-bold shadow-lg border transition-all px-4 flex items-center gap-2 ${
-                              isDelimiting 
-                              ? 'bg-emerald-600 text-white border-emerald-700' 
-                              : 'bg-white/90 backdrop-blur-md text-emerald-700 border-emerald-100 hover:bg-emerald-50'
-                            }`}
-                         >
-                            <Layers className="w-4 h-4" /> {isDelimiting ? 'Terminar Delimitación' : 'Delimitar Límite'}
-                         </button>
-                         <button 
-                            type="button"
-                            onClick={() => {
-                               setFormData(prev => ({ ...prev, coordenadas_poligono: [], latitud: '', longitud: '' }));
-                               setIsDelimiting(false);
-                            }}
-                            className="bg-white/90 backdrop-blur-md p-2 rounded-xl text-red-500 shadow-lg border border-red-50 hover:bg-red-50 transition-all px-4 text-sm font-bold flex items-center gap-2"
-                         >
-                            <Trash2 className="w-4 h-4" /> Limpiar Mapa
-                         </button>
-                      </div>
-                   </div>
+                        <Layers className="w-4 h-4" /> {isDelimiting ? 'Terminar Delimitación' : 'Delimitar Límite'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, coordenadas_poligono: [], latitud: '', longitud: '' }));
+                          setIsDelimiting(false);
+                        }}
+                        className="bg-white/90 backdrop-blur-md p-2 rounded-xl text-red-500 shadow-lg border border-red-50 hover:bg-red-50 transition-all px-4 text-sm font-bold flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" /> Limpiar Mapa
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </SectionCard>
 

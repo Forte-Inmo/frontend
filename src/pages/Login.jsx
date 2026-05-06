@@ -17,7 +17,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email,
@@ -38,13 +38,13 @@ export default function Login() {
 
   // Fallback robusto para la imagen de fondo
   const bgImage = settings?.background_url || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop';
-  
+
   return (
     <div className="flex min-h-screen w-full relative overflow-hidden bg-gray-900">
       {/* Capa de Imagen de Fondo */}
-      <div 
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-1000"
-        style={{ 
+        style={{
           backgroundImage: `url(${bgImage})`,
           backgroundColor: '#111827' // Gris muy oscuro de respaldo
         }}
@@ -54,7 +54,7 @@ export default function Login() {
 
       {/* Panel de Login (Siempre Blanco) */}
       <div className="relative z-10 flex flex-col justify-center ml-auto w-full max-w-[520px] min-h-screen bg-white shadow-2xl px-10 py-12 md:px-20">
-        
+
         {/* Logos */}
         {(settings?.org1_logo_url || settings?.org2_logo_url) ? (
           <div className="mb-12 flex items-center justify-center gap-6 w-full">
@@ -67,7 +67,7 @@ export default function Login() {
           </div>
         ) : (
           <div className="mb-12 text-center">
-             <div className="w-16 h-16 bg-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-emerald-200">*</div>
+            <div className="w-16 h-16 bg-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-emerald-200">*</div>
           </div>
         )}
 
@@ -75,51 +75,64 @@ export default function Login() {
           <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Forte Reports</h1>
           <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Panel de Control Interno</p>
         </div>
-        
+
         <form onSubmit={handleLogin} className="flex flex-col gap-6 w-full">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Corporativo</label>
-            <input 
-              type="email" 
-              placeholder="tu@forte.com" 
+            <input
+              type="email"
+              placeholder="tu@forte.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-600 focus:bg-white focus:outline-none transition-all font-bold text-gray-700 shadow-sm"
             />
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña</label>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
+            <input
+              type="password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-600 focus:bg-white focus:outline-none transition-all font-bold text-gray-700 shadow-sm"
             />
           </div>
-          
+
           {error && (
             <div className="bg-red-50 border-2 border-red-100 p-4 rounded-2xl">
-               <p className="text-red-600 text-[11px] font-black uppercase tracking-wider text-center">{error}</p>
+              <p className="text-red-600 text-[11px] font-black uppercase tracking-wider text-center">{error}</p>
             </div>
           )}
-          
-          <button 
-            type="submit" 
-            disabled={loading} 
-            className="w-full mt-4 py-4.5 bg-gray-900 hover:bg-black text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition-all active:scale-[0.98] disabled:opacity-50"
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="relative group w-full mt-4 py-4 rounded-2xl bg-[#107549] text-white font-bold text-sm overflow-hidden transition-all duration-300 hover:bg-[#0d5e3b] hover:shadow-[0_8px_30px_rgb(16,117,73,0.3)] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Validando...' : 'Iniciar Sesión'}
+            <div className="flex items-center justify-center gap-2">
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span className="tracking-widest uppercase text-[11px] font-black">Validando...</span>
+                </>
+              ) : (
+                <span className="tracking-widest uppercase text-[11px] font-black">Iniciar Sesión</span>
+              )}
+            </div>
           </button>
         </form>
 
-        <div className="mt-auto pt-10 text-center">
-            <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">
-               Powered by Supabase & Forte
-            </p>
+        <div className="mt-auto pt-10 flex flex-col items-center gap-4">
+          <div className="h-px w-12 bg-gray-100"></div>
+          <p className="text-[9px] font-medium text-gray-400 tracking-[0.2em] flex items-center gap-2">
+            POWERED BY <span className="font-black text-gray-500">Borei Studio</span>
+          </p>
         </div>
       </div>
     </div>
