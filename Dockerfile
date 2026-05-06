@@ -2,7 +2,7 @@ FROM node:20-slim AS pdf-builder
 
 WORKDIR /pdf-service
 COPY pdf-service/package*.json ./
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # ─── Stage 2: Build React ─────────────────────────────────────────────────────
 FROM node:20-alpine AS react-builder
