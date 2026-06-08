@@ -11,11 +11,10 @@ export default function CaratulaPage({
   activeLocks,
   uploadImage,
   campoMetadata,
-  isEditMode = true,
-  isPDFRender = false
+  isEditMode = true
 }) {
   const LockBadge = ({ userName }) => (
-    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden" data-no-print="true">
+    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden" data-no-print="true">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
       {userName} editando...
     </div>
@@ -81,7 +80,6 @@ export default function CaratulaPage({
               onBlur={releaseLock}
               disabled={isLockedByOther(`page_${page.id}_titulo`) || !isEditMode}
               className="w-full text-[75px] leading-[1.1] font-black text-center resize-none bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl transition uppercase text-[#ccff00] placeholder:opacity-50"
-              style={{ textShadow: '0 10px 30px rgba(0,0,0,0.4)' }}
               rows="2"
             />
           </div>
@@ -90,7 +88,6 @@ export default function CaratulaPage({
           <div className="w-full mt-2">
             <div
               className="w-full text-[24px] font-bold text-center p-2 uppercase text-white tracking-[0.2em]"
-              style={{ textShadow: '0 4px 10px rgba(0,0,0,0.3)' }}
             >
               {getSubtitulo()}
             </div>
@@ -100,12 +97,11 @@ export default function CaratulaPage({
         {/* Middle Stats */}
         <div className="flex flex-col items-center justify-center my-auto">
           {/* Superficie (No editable - Viene del Campo) */}
-          <div className="w-full text-[130px] leading-[1] font-black text-[#ccff00] text-center px-4 select-none"
-            style={{ textShadow: '0 15px 40px rgba(0,0,0,0.3)' }}>
+          <div className="w-full text-[130px] leading-[1] font-black text-[#ccff00] text-center px-4 select-none">
             {campoMetadata?.superficie_total || '000'}
           </div>
           <div className="relative mt-4">
-            <div className="bg-[#4a8df8] text-white font-black text-[36px] px-20 py-3 shadow-2xl" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)', ...(isPDFRender ? { filter: 'drop-shadow(0px 25px 50px rgba(0,0,0,0.25))', boxShadow: 'none' } : {}) }}>
+            <div className="bg-[#4a8df8] text-white font-black text-[36px] px-20 py-3" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
               HAS.
             </div>
           </div>
@@ -116,7 +112,7 @@ export default function CaratulaPage({
 
           {/* Location Pin */}
           <div className="flex flex-col items-center gap-3">
-            <div className="p-3 bg-white rounded-2xl shadow-xl">
+            <div className="p-3 bg-white rounded-2xl">
               <MapPin className="w-8 h-8 text-[#ccff00]" fill="currentColor" />
             </div>
             <div className="text-center">
