@@ -6,7 +6,6 @@ services:
       args:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
-        VITE_PDF_SERVICE_URL: /pdf-api
     restart: unless-stopped
     ports:
       - "80:80"
