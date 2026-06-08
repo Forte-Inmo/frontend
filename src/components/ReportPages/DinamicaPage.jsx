@@ -372,14 +372,20 @@ export default function DinamicaPage({
            </div>
 
            <div className="flex items-center gap-8">
-              <div className="flex flex-col items-center gap-1">
-                 <div className="w-7 h-7 bg-white flex items-center justify-center p-1.5 rounded-lg">
-                    <div className="w-full h-full border-2 border-[#003399] transform rotate-45 flex items-center justify-center">
-                       <div className="w-1 h-1 bg-[#003399]"></div>
-                    </div>
-                 </div>
-              </div>
-              <span className="text-[20px] font-black text-white tracking-widest uppercase">Real</span>
+              {settings?.org2_logo_url ? (
+                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-10 w-auto object-contain" />
+              ) : (
+                <>
+                  <div className="flex flex-col items-center gap-1">
+                     <div className="w-7 h-7 bg-white flex items-center justify-center p-1.5 rounded-lg">
+                        <div className="w-full h-full border-2 border-[#003399] transform rotate-45 flex items-center justify-center">
+                           <div className="w-1 h-1 bg-[#003399]"></div>
+                        </div>
+                     </div>
+                  </div>
+                  <span className="text-[20px] font-black text-white tracking-widest uppercase">Real</span>
+                </>
+              )}
            </div>
         </div>
 

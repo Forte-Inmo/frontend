@@ -6,7 +6,8 @@ export default function SituacionActualPage({
   pageIndex, 
   updatePage, 
   isEditMode = true,
-  uploadImage 
+  uploadImage,
+  settings = null
 }) {
   const descripcionRef = useRef(null);
   const destacadoRef = useRef(null);
@@ -116,23 +117,34 @@ export default function SituacionActualPage({
            </div>
 
            <div className="flex items-center gap-10">
-              <div className="flex flex-col items-center gap-1">
-                 <div className="w-8 h-8 bg-white flex items-center justify-center p-1.5 rounded-lg shadow-lg">
-                    <div className="w-full h-full border-2 border-[#003399] transform rotate-45 flex items-center justify-center">
-                       <div className="w-1.5 h-1.5 bg-[#003399]"></div>
-                    </div>
-                 </div>
-                 <span className="text-[10px] font-black text-white tracking-tighter">FORTE</span>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                 <div className="flex flex-col items-start gap-0.5 opacity-80">
-                    <div className="w-6 h-1 bg-white"></div>
-                    <div className="w-4 h-1 bg-white"></div>
-                    <div className="w-6 h-1 bg-white"></div>
-                 </div>
-                 <span className="text-[24px] font-black text-white tracking-widest uppercase">Real</span>
-              </div>
+              {settings?.org1_logo_url ? (
+                <div className="flex flex-col items-center gap-1">
+                  <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-10 w-auto object-contain" />
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1">
+                   <div className="w-8 h-8 bg-white flex items-center justify-center p-1.5 rounded-lg shadow-lg">
+                      <div className="w-full h-full border-2 border-[#003399] transform rotate-45 flex items-center justify-center">
+                         <div className="w-1.5 h-1.5 bg-[#003399]"></div>
+                      </div>
+                   </div>
+                   <span className="text-[10px] font-black text-white tracking-tighter">FORTE</span>
+                </div>
+              )}
+              {settings?.org2_logo_url ? (
+                <div className="flex items-center gap-3">
+                  <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-10 w-auto object-contain" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                   <div className="flex flex-col items-start gap-0.5 opacity-80">
+                      <div className="w-6 h-1 bg-white"></div>
+                      <div className="w-4 h-1 bg-white"></div>
+                      <div className="w-6 h-1 bg-white"></div>
+                   </div>
+                   <span className="text-[24px] font-black text-white tracking-widest uppercase">Real</span>
+                </div>
+              )}
            </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useSettings } from '../contexts/SettingsContext';
 import CaratulaPage from '../components/ReportPages/CaratulaPage';
 import UbicacionPage from '../components/ReportPages/UbicacionPage';
 import SituacionActualPage from '../components/ReportPages/SituacionActualPage';
@@ -20,6 +21,7 @@ export default function RenderPage() {
   const [fontReady, setFontReady] = useState(false);
   const rootRef = useRef(null);
 
+  const { settings } = useSettings();
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const fetched = useRef(false);
@@ -183,12 +185,12 @@ export default function RenderPage() {
             WebkitPrintColorAdjust: 'exact',
           }}
         >
-          {page.type === 'CARATULA' && <CaratulaPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} campoMetadata={campoMetadata} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
-          {page.type === 'UBICACION' && <UbicacionPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} />}
-          {page.type === 'SITUACION_ACTUAL' && <SituacionActualPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} />}
-          {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} />}
-          {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} />}
-          {page.type === 'TEXTO_FOTOS' && <TextoFotosPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
+          {page.type === 'CARATULA' && <CaratulaPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} campoMetadata={campoMetadata} settings={settings} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
+          {page.type === 'UBICACION' && <UbicacionPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'SITUACION_ACTUAL' && <SituacionActualPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'TEXTO_FOTOS' && <TextoFotosPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
         </div>
       ))}
     </div>

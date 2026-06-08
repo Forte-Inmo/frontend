@@ -8,7 +8,8 @@ export default function AnalisisSueloPage({
   updatePageSlice,
   addSlice,
   isEditMode = true,
-  uploadImage 
+  uploadImage,
+  settings = null
 }) {
 
   const slices = page.slices || [
@@ -222,26 +223,35 @@ export default function AnalisisSueloPage({
 
           {/* Logos */}
           <div className="flex items-center gap-6">
-            {/* Forte logo */}
-            <div className="flex flex-col items-center gap-0.5">
-              <div className="bg-white rounded-lg p-1.5 shadow-md">
-                <div className="w-6 h-6 border-2 border-[#003399] rotate-45 flex items-center justify-center">
-                  <div className="w-1 h-1 bg-[#003399]" />
+            {settings?.org1_logo_url ? (
+              <div className="flex flex-col items-center gap-0.5">
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-8 w-auto object-contain" />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-0.5">
+                <div className="bg-white rounded-lg p-1.5 shadow-md">
+                  <div className="w-6 h-6 border-2 border-[#003399] rotate-45 flex items-center justify-center">
+                    <div className="w-1 h-1 bg-[#003399]" />
+                  </div>
                 </div>
+                <span className="text-[8px] font-black text-white uppercase tracking-widest">FORTE</span>
+                <span className="text-[7px] font-bold text-white/60 uppercase tracking-wider">INMOBILIARIA</span>
               </div>
-              <span className="text-[8px] font-black text-white uppercase tracking-widest">FORTE</span>
-              <span className="text-[7px] font-bold text-white/60 uppercase tracking-wider">INMOBILIARIA</span>
-            </div>
-
-            {/* Real logo */}
-            <div className="flex items-center gap-2">
-              <div className="flex flex-col gap-0.5">
-                <div className="h-1 bg-white rounded" style={{ width: '22px' }} />
-                <div className="h-1 bg-white rounded" style={{ width: '14px' }} />
-                <div className="h-1 bg-white rounded" style={{ width: '22px' }} />
+            )}
+            {settings?.org2_logo_url ? (
+              <div className="flex items-center gap-2">
+                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-8 w-auto object-contain" />
               </div>
-              <span className="text-[18px] font-black text-white uppercase tracking-widest">REAL</span>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <div className="h-1 bg-white rounded" style={{ width: '22px' }} />
+                  <div className="h-1 bg-white rounded" style={{ width: '14px' }} />
+                  <div className="h-1 bg-white rounded" style={{ width: '22px' }} />
+                </div>
+                <span className="text-[18px] font-black text-white uppercase tracking-widest">REAL</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

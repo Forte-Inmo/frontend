@@ -11,7 +11,8 @@ export default function CaratulaPage({
   activeLocks,
   uploadImage,
   campoMetadata,
-  isEditMode = true
+  isEditMode = true,
+  settings = null
 }) {
   const titleRef = useRef(null);
 
@@ -146,27 +147,38 @@ export default function CaratulaPage({
 
           {/* Logos Area */}
           <div className="w-full flex items-center justify-center gap-[15mm] pt-12 border-t border-white/20">
-            <div className="flex flex-col items-center gap-1 opacity-90">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 border-4 border-white transform rotate-45 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white"></div>
-                </div>
-                <span className="text-2xl font-black text-white tracking-tighter">FORTE</span>
+            {settings?.org1_logo_url ? (
+              <div className="flex flex-col items-center gap-1 opacity-90">
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-12 w-auto object-contain" />
               </div>
-              <span className="text-[8px] font-black tracking-[0.3em] text-white/70">INMOBILIARIA</span>
-            </div>
-
-            <div className="flex flex-col items-center gap-1 opacity-90">
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col items-start gap-0.5">
-                  <div className="w-6 h-1 bg-white"></div>
-                  <div className="w-4 h-1 bg-white"></div>
-                  <div className="w-6 h-1 bg-white"></div>
+            ) : (
+              <div className="flex flex-col items-center gap-1 opacity-90">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 border-4 border-white transform rotate-45 flex items-center justify-center">
+                    <div className="w-3 h-3 bg-white"></div>
+                  </div>
+                  <span className="text-2xl font-black text-white tracking-tighter">FORTE</span>
                 </div>
-                <span className="text-2xl font-black text-white tracking-widest">REAL</span>
+                <span className="text-[8px] font-black tracking-[0.3em] text-white/70">INMOBILIARIA</span>
               </div>
-              <span className="text-[8px] font-black tracking-[0.3em] text-white/70">INMOBILIARIA</span>
-            </div>
+            )}
+            {settings?.org2_logo_url ? (
+              <div className="flex flex-col items-center gap-1 opacity-90">
+                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-12 w-auto object-contain" />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1 opacity-90">
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-start gap-0.5">
+                    <div className="w-6 h-1 bg-white"></div>
+                    <div className="w-4 h-1 bg-white"></div>
+                    <div className="w-6 h-1 bg-white"></div>
+                  </div>
+                  <span className="text-2xl font-black text-white tracking-widest">REAL</span>
+                </div>
+                <span className="text-[8px] font-black tracking-[0.3em] text-white/70">INMOBILIARIA</span>
+              </div>
+            )}
           </div>
         </div>
 

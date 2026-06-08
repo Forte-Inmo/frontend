@@ -9,7 +9,8 @@ export default function TextoFotosPage({
   releaseLock, 
   isLockedByOther, 
   activeLocks,
-  isEditMode = true 
+  isEditMode = true,
+  settings = null
 }) {
   const LockBadge = ({ userName }) => (
     <div data-no-print="true" className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden">
@@ -79,10 +80,14 @@ export default function TextoFotosPage({
         {/* Footer Branding */}
         <div className={`mt-auto pt-10 border-t flex justify-between items-end ${page.fondo_url ? 'border-white/20' : 'border-gray-100'}`}>
            <div className={`flex gap-8 ${page.fondo_url ? 'text-white' : 'opacity-30 grayscale text-black'}`}>
-              <div className="flex items-center gap-2">
-                 <div className={`w-5 h-5 border-2 transform rotate-45 ${page.fondo_url ? 'border-white' : 'border-black'}`}></div>
-                 <span className="font-black text-sm tracking-tighter">FORTE</span>
-              </div>
+              {settings?.org1_logo_url ? (
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-8 w-auto object-contain" />
+              ) : (
+                <div className="flex items-center gap-2">
+                   <div className={`w-5 h-5 border-2 transform rotate-45 ${page.fondo_url ? 'border-white' : 'border-black'}`}></div>
+                   <span className="font-black text-sm tracking-tighter">FORTE</span>
+                </div>
+              )}
            </div>
            <div data-no-print="true" className={`${page.fondo_url ? 'bg-white/20 backdrop-blur-md border border-white/20' : 'bg-gray-100'} px-4 py-1.5 rounded-xl export-hidden`}>
               <span className={`text-[10px] font-black uppercase tracking-widest ${page.fondo_url ? 'text-white' : 'text-gray-400'}`}>Página {pageIndex + 1}</span>
