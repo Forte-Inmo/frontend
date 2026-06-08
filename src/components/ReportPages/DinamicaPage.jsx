@@ -167,10 +167,10 @@ export default function DinamicaPage({
       </div>
 
       {/* Content Layer */}
-      <div className="relative z-10 w-full h-full flex flex-col p-[15mm]" style={{ overflow: 'clip' }}>
+      <div className="relative z-10 w-full h-full" style={{ overflow: 'clip' }}>
         
-        {/* Scrollable Content Area (Clipped at A4 bounds) */}
-        <div className="flex-1 flex flex-col" style={{ overflow: 'clip' }}>
+        {/* Content Area */}
+        <div className="absolute inset-0 flex flex-col p-[15mm] pb-[140px]" style={{ overflow: 'clip' }}>
           <div className="flex flex-col gap-6 w-[94%] mx-auto mt-4" style={{ flex: blocks.some(b => b.imageScale === 'full') ? '1 1 0' : '0 0 auto' }}>
             {blocks.map((block, idx) => (
               <div 
@@ -359,7 +359,7 @@ export default function DinamicaPage({
       </div>
 
         {/* Footer Branding */}
-        <div className="mt-auto flex justify-between items-end border-t border-white/20 pt-8 pb-4">
+        <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end border-t border-white/20 pt-5 pb-4 px-[15mm] z-20 bg-gray-900">
            <div className="flex flex-col gap-1 text-white opacity-90">
               <div className="flex gap-4 text-[10px] font-black">
                  <span className="uppercase tracking-widest">SANTA ROSA <span className="text-[#ccff00]">REAL INMOBILIARIA</span></span>
@@ -369,22 +369,19 @@ export default function DinamicaPage({
                  <span className="uppercase tracking-widest">GENERAL PICO <span className="text-[#ccff00]">FORTE INMOBILIARIA</span></span>
                  <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2302-410798</span></span>
               </div>
+              <div className="text-[10px] font-black text-[#ccff00] tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
            </div>
 
            <div className="flex items-center gap-8">
+              {settings?.org1_logo_url ? (
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-14 w-auto object-contain" />
+              ) : (
+                <span className="text-[20px] font-black text-white tracking-widest uppercase">Forte</span>
+              )}
               {settings?.org2_logo_url ? (
                 <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
               ) : (
-                <>
-                  <div className="flex flex-col items-center gap-1">
-                     <div className="w-7 h-7 bg-white flex items-center justify-center p-1.5 rounded-lg">
-                        <div className="w-full h-full border-2 border-[#003399] transform rotate-45 flex items-center justify-center">
-                           <div className="w-1 h-1 bg-[#003399]"></div>
-                        </div>
-                     </div>
-                  </div>
-                  <span className="text-[20px] font-black text-white tracking-widest uppercase">Real</span>
-                </>
+                <span className="text-[20px] font-black text-white tracking-widest uppercase">Real</span>
               )}
            </div>
         </div>

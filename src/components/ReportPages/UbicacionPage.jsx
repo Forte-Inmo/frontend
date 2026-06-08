@@ -79,74 +79,77 @@ export default function UbicacionPage({
       </div>
 
       {/* Main Content Area */}
-      <div className="relative z-10 w-full h-full flex flex-col px-[15mm] pt-[10mm] pb-[15mm]">
+      <div className="relative z-10 w-full h-full" style={{ overflow: 'clip' }}>
         
-        {/* Title - Full Width */}
-        <div className="mt-10 w-full relative z-20">
-          <textarea 
-            ref={titleRef}
-            value={page.titulo || "UBICACIÓN Y DISTRIBUCIÓN"}
-            onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
-            disabled={!isEditMode}
-            className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic resize-none w-full h-auto p-0 overflow-hidden"
-            style={{ 
-              fontSize: `${page.titulo_size || 58}px`,
-              color: page.titulo_color || '#ffffff',
-              textShadow: '0 4px 12px rgba(0,0,0,0.5)'
-            }}
-            onInput={(e) => {
-              e.target.style.height = 'auto';
-              e.target.style.height = e.target.scrollHeight + 'px';
-            }}
-          />
-        </div>
+        {/* Content Area with bottom padding for footer */}
+        <div className="absolute inset-0 flex flex-col px-[15mm] pt-[10mm] pb-[140px]" style={{ overflow: 'clip' }}>
+          {/* Title - Full Width */}
+          <div className="mt-10 w-full relative z-20">
+            <textarea 
+              ref={titleRef}
+              value={page.titulo || "UBICACIÓN Y DISTRIBUCIÓN"}
+              onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
+              disabled={!isEditMode}
+              className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic resize-none w-full h-auto p-0 overflow-hidden"
+              style={{ 
+                fontSize: `${page.titulo_size || 58}px`,
+                color: page.titulo_color || '#ffffff',
+                textShadow: '0 4px 12px rgba(0,0,0,0.5)'
+              }}
+              onInput={(e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }}
+            />
+          </div>
 
-        {/* Map - original large size, absolute bottom-right */}
-        <div className="absolute right-[-10mm] bottom-[30mm] w-[180mm] h-[190mm] z-10 flex items-center justify-center">
-          <MapaLaPampa
-            selectedDept={page.departamento}
-            onSelectDept={(dept) => {
-              updatePage(pageIndex, 'departamento', dept);
-              if (setIsEditingMap) setIsEditingMap(true);
-            }}
-            isEditMode={isEditMode}
-            pinX={page.pin_x}
-            pinY={page.pin_y}
-            onPinChange={(x, y) => {
-              updatePage(pageIndex, 'pin_x', x);
-              updatePage(pageIndex, 'pin_y', y);
-              if (setIsEditingMap) setIsEditingMap(true);
-            }}
-            pinColor={page.pin_color || '#003399'}
-            deptColors={page.deptColors || {}}
-            deptTextColors={page.deptTextColors || {}}
-          />
-        </div>
+          {/* Map - original large size, absolute bottom-right */}
+          <div className="absolute right-[-10mm] bottom-[30mm] w-[180mm] h-[190mm] z-10 flex items-center justify-center">
+            <MapaLaPampa
+              selectedDept={page.departamento}
+              onSelectDept={(dept) => {
+                updatePage(pageIndex, 'departamento', dept);
+                if (setIsEditingMap) setIsEditingMap(true);
+              }}
+              isEditMode={isEditMode}
+              pinX={page.pin_x}
+              pinY={page.pin_y}
+              onPinChange={(x, y) => {
+                updatePage(pageIndex, 'pin_x', x);
+                updatePage(pageIndex, 'pin_y', y);
+                if (setIsEditingMap) setIsEditingMap(true);
+              }}
+              pinColor={page.pin_color || '#003399'}
+              deptColors={page.deptColors || {}}
+              deptTextColors={page.deptTextColors || {}}
+            />
+          </div>
 
-        {/* Description - left column, clears the map */}
-        <div className="mt-4 flex-1 w-[55%] relative z-20">
-          <RichTextEditor 
-            content={page.descripcion || "Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo Provincia de La Pampa."}
-            onChange={(html) => updatePage(pageIndex, 'descripcion', html)}
-            isEditMode={isEditMode}
-            className="bg-transparent border-none focus:outline-none font-bold leading-tight drop-shadow-md min-h-[1em] w-full p-0 text-justify outline-none
-                 [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal"
-            style={{ 
-              fontSize: `${page.descripcion_size || 26}px`,
-              color: page.descripcion_color || '#ffffff'
-            }}
-          />
-        </div>
+          {/* Description - left column, clears the map */}
+          <div className="mt-4 flex-1 w-[55%] relative z-20">
+            <RichTextEditor 
+              content={page.descripcion || "Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo Provincia de La Pampa."}
+              onChange={(html) => updatePage(pageIndex, 'descripcion', html)}
+              isEditMode={isEditMode}
+              className="bg-transparent border-none focus:outline-none font-bold leading-tight drop-shadow-md min-h-[1em] w-full p-0 text-justify outline-none
+                   [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal"
+              style={{ 
+                fontSize: `${page.descripcion_size || 26}px`,
+                color: page.descripcion_color || '#ffffff'
+              }}
+            />
+          </div>
 
-          {/* Optional Overlay Person (como el del mockup) */}
-          {page.overlay_url && (
-            <div className="absolute bottom-0 left-0 w-1/3 h-2/3 pointer-events-none select-none">
-               <img src={page.overlay_url} className="w-full h-full object-contain object-bottom" alt="overlay" />
-            </div>
-          )}
+            {/* Optional Overlay Person (como el del mockup) */}
+            {page.overlay_url && (
+              <div className="absolute bottom-0 left-0 w-1/3 h-2/3 pointer-events-none select-none">
+                 <img src={page.overlay_url} className="w-full h-full object-contain object-bottom" alt="overlay" />
+              </div>
+            )}
+        </div>
 
         {/* Footer Branding */}
-        <div className="mt-auto flex justify-between items-end border-t border-white/20 pt-10">
+        <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end border-t border-white/20 pt-5 px-[15mm] pb-4 z-20 bg-gray-900">
            <div className="flex flex-col gap-1 text-white opacity-90">
               <div className="flex gap-4 text-[11px] font-black">
                  <span className="uppercase tracking-widest">SANTA ROSA <span className="text-[#ccff00]">REAL INMOBILIARIA</span></span>
@@ -198,5 +201,6 @@ export default function UbicacionPage({
 
       </div>
     </div>
+
   );
 }

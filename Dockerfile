@@ -33,6 +33,7 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y \
   nginx \
   chromium \
+  ghostscript \
   fonts-liberation \
   fonts-noto \
   fonts-noto-color-emoji \
