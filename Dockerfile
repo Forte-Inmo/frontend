@@ -1,9 +1,14 @@
-# ─── Stage 1: Build Go pdf-service ─────────────────────────────────────────────
-FROM golang:1.26-alpine AS go-builder
+# ─── Stage 1: Build pdf-service (Node.js) ─────────────────────────────────────
+FROM node:20-alpine AS pdf-builder
 
-WORKDIR /pdf-service-go
-COPY pdf-service-go/ .
-RUN go build -o pdf-service .
+WORKDIR /pdf-service
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+COPY pdf-service/package*.json ./
+RUN npm ci --omit=dev
+
+COPY pdf-service/ .
 
 # ─── Stage 2: Build React ─────────────────────────────────────────────────────
 FROM node:20-alpine AS react-builder
@@ -15,8 +20,10 @@ COPY . .
 
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_PDF_SERVICE_URL
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_PDF_SERVICE_URL=$VITE_PDF_SERVICE_URL
 
 RUN npm run build
 
@@ -55,7 +62,8 @@ ENV CHROMIUM_PATH=/usr/bin/chromium
 COPY --from=react-builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/app.conf
 
-COPY --from=go-builder /pdf-service-go/pdf-service /usr/local/bin/pdf-service
+COPY --from=pdf-builder /pdf-service /pdf-service
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 COPY start.sh /start.sh
 RUN chmod +x /start.sh

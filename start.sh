@@ -1,3 +1,3 @@
 #!/bin/bash
-pdf-service &
+node /pdf-service/index.js &
 nginx -g "daemon off;"

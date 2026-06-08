@@ -1,0 +1,8 @@
+node_modules/
+pdf-service/node_modules/
+dist/
+.git/
+*.md
+.env
+.env.local
+.env.*.local
