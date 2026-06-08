@@ -11,10 +11,11 @@ export default function CaratulaPage({
   activeLocks,
   uploadImage,
   campoMetadata,
-  isEditMode = true
+  isEditMode = true,
+  isPDFRender = false
 }) {
   const LockBadge = ({ userName }) => (
-    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden">
+    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden" data-no-print="true">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
       {userName} editando...
     </div>
@@ -32,13 +33,13 @@ export default function CaratulaPage({
 
 
   return (
-    <div className="absolute inset-0 flex flex-col justify-between w-full h-full text-center bg-gray-900 overflow-hidden font-sans">
+    <div className="absolute inset-0 flex flex-col justify-between w-full h-full text-center bg-gray-900 font-sans" style={{ overflow: 'clip' }}>
       {/* Background Image */}
       {page.portada_url ? (
         <>
           <img src={page.portada_url} className="absolute inset-0 w-full h-full object-cover object-top z-0" alt="cover" />
           {isEditMode && (
-            <div className="absolute top-8 right-8 z-20">
+            <div className="absolute top-8 right-8 z-20" data-no-print="true">
               <label className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">
                 <Camera className="w-5 h-5" />
                 <span className="text-xs font-bold uppercase tracking-wider">Cambiar Portada</span>
@@ -48,7 +49,7 @@ export default function CaratulaPage({
           )}
         </>
       ) : (
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-gray-800 z-0">
+        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-gray-800 z-0" data-no-print="true">
           <label className="bg-white/10 px-10 py-5 rounded-[2rem] border border-white/20 text-white font-black cursor-pointer hover:bg-white/20 transition-all flex flex-col items-center gap-4">
             <div className="p-4 bg-white/10 rounded-2xl">
               <Camera className="w-8 h-8" />
@@ -79,7 +80,7 @@ export default function CaratulaPage({
               onFocus={() => acquireLock(`page_${page.id}_titulo`)}
               onBlur={releaseLock}
               disabled={isLockedByOther(`page_${page.id}_titulo`) || !isEditMode}
-              className="w-full text-[75px] leading-[0.9] font-black text-center resize-none bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl transition uppercase text-[#ccff00] placeholder:opacity-50"
+              className="w-full text-[75px] leading-[1.1] font-black text-center resize-none bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl transition uppercase text-[#ccff00] placeholder:opacity-50"
               style={{ textShadow: '0 10px 30px rgba(0,0,0,0.4)' }}
               rows="2"
             />
@@ -104,7 +105,7 @@ export default function CaratulaPage({
             {campoMetadata?.superficie_total || '000'}
           </div>
           <div className="relative mt-4">
-            <div className="bg-[#4a8df8] text-white font-black text-[36px] px-20 py-3 shadow-2xl" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)' }}>
+            <div className="bg-[#4a8df8] text-white font-black text-[36px] px-20 py-3 shadow-2xl" style={{ clipPath: 'polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)', ...(isPDFRender ? { filter: 'drop-shadow(0px 25px 50px rgba(0,0,0,0.25))', boxShadow: 'none' } : {}) }}>
               HAS.
             </div>
           </div>
@@ -161,7 +162,7 @@ export default function CaratulaPage({
         </div>
 
         {/* Page Badge */}
-        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden">
+        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden" data-no-print="true">
           <span className="text-white text-xs font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
         </div>
 

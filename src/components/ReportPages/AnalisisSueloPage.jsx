@@ -103,7 +103,7 @@ export default function AnalisisSueloPage({
   };
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden font-sans">
+    <div className="absolute inset-0 w-full h-full font-sans" style={{ overflow: 'clip' }}>
 
       {/* ── Background ── */}
       <div className="absolute inset-0 z-0">
@@ -113,7 +113,7 @@ export default function AnalisisSueloPage({
           <div className="w-full h-full bg-gradient-to-br from-slate-500 via-slate-400 to-green-700" />
         )}
         {isEditMode && (
-          <div className="absolute top-6 right-6 z-30">
+          <div className="absolute top-6 right-6 z-30" data-no-print="true">
             <label className="p-2.5 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">
               <Camera className="w-4 h-4" />
               <span className="text-[9px] font-black uppercase tracking-wider">Fondo</span>
@@ -140,7 +140,7 @@ export default function AnalisisSueloPage({
           <div className="flex items-start">
             {/* Left: Title */}
             <div className="flex-none pr-8 border-r border-gray-100 flex flex-col justify-center" style={{ minHeight: '35mm' }}>
-              <div className="text-[#003399] font-black italic uppercase leading-[0.85]" style={{ fontSize: '42px' }}>
+              <div className="text-[#003399] font-black italic uppercase leading-[1.1]" style={{ fontSize: '42px' }}>
                 MONTE<br />LIMPIO<br />TOTAL
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function AnalisisSueloPage({
       </div>
 
       {/* ── Page Badge ── */}
-      <div className="absolute bottom-8 left-8 bg-white/15 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 export-hidden">
+      <div className="absolute bottom-8 left-8 bg-white/15 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 export-hidden" data-no-print="true">
         <span className="text-white text-[9px] font-black uppercase tracking-widest">Pág. {pageIndex + 1}</span>
       </div>
     </div>

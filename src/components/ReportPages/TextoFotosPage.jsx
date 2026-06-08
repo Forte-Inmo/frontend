@@ -12,14 +12,14 @@ export default function TextoFotosPage({
   isEditMode = true 
 }) {
   const LockBadge = ({ userName }) => (
-    <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden">
+    <div data-no-print="true" className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 shadow-lg z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
       {userName} editando...
     </div>
   );
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden font-sans">
+    <div className="absolute inset-0 w-full h-full font-sans" style={{ overflow: 'clip' }}>
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         {page.fondo_url ? (
@@ -60,14 +60,14 @@ export default function TextoFotosPage({
                  <div key={fIdx} className="relative group rounded-[2rem] overflow-hidden shadow-xl aspect-square bg-gray-50 border border-gray-100 flex-shrink-0">
                     <img src={foto} className="w-full h-full object-cover" alt={`foto-${fIdx}`} />
                     {isEditMode && (
-                      <button className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md rounded-xl text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white">
+                      <button data-no-print="true" className="absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-md rounded-xl text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white">
                          <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                  </div>
                ))}
                {isEditMode && (
-                 <div className="aspect-square rounded-[2rem] border-4 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-300 hover:border-emerald-400 hover:text-emerald-400 transition-all cursor-pointer bg-white/50 backdrop-blur-sm flex-shrink-0">
+                 <div data-no-print="true" className="aspect-square rounded-[2rem] border-4 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3 text-gray-300 hover:border-emerald-400 hover:text-emerald-400 transition-all cursor-pointer bg-white/50 backdrop-blur-sm flex-shrink-0">
                     <Plus className="w-8 h-8" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Añadir Imagen</span>
                  </div>
@@ -84,7 +84,7 @@ export default function TextoFotosPage({
                  <span className="font-black text-sm tracking-tighter">FORTE</span>
               </div>
            </div>
-           <div className={`${page.fondo_url ? 'bg-white/20 backdrop-blur-md border border-white/20' : 'bg-gray-100'} px-4 py-1.5 rounded-xl export-hidden`}>
+           <div data-no-print="true" className={`${page.fondo_url ? 'bg-white/20 backdrop-blur-md border border-white/20' : 'bg-gray-100'} px-4 py-1.5 rounded-xl export-hidden`}>
               <span className={`text-[10px] font-black uppercase tracking-widest ${page.fondo_url ? 'text-white' : 'text-gray-400'}`}>Página {pageIndex + 1}</span>
            </div>
         </div>

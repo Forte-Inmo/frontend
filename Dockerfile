@@ -1,8 +1,9 @@
-FROM node:20-slim AS pdf-builder
+# ─── Stage 1: Build Go pdf-service ─────────────────────────────────────────────
+FROM golang:1.26-alpine AS go-builder
 
-WORKDIR /pdf-service
-COPY pdf-service/package*.json ./
-RUN npm install --omit=dev
+WORKDIR /pdf-service-go
+COPY pdf-service-go/ .
+RUN go build -o pdf-service .
 
 # ─── Stage 2: Build React ─────────────────────────────────────────────────────
 FROM node:20-alpine AS react-builder
@@ -22,7 +23,6 @@ RUN npm run build
 # ─── Stage 3: Final ───────────────────────────────────────────────────────────
 FROM node:20-slim
 
-# Instalar Nginx + Chromium + dependencias de Puppeteer
 RUN apt-get update && apt-get install -y \
   nginx \
   chromium \
@@ -50,24 +50,13 @@ RUN apt-get update && apt-get install -y \
   && rm -f /etc/nginx/sites-enabled/default \
   && rm -f /etc/nginx/conf.d/default.conf
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV CHROMIUM_PATH=/usr/bin/chromium
 
-# Copiar build de React
 COPY --from=react-builder /app/dist /usr/share/nginx/html
-
-# Copiar nginx.conf
 COPY nginx.conf /etc/nginx/conf.d/app.conf
 
-# Copiar pdf-service
-WORKDIR /pdf-service
-COPY --from=pdf-builder /pdf-service/node_modules ./node_modules
-COPY pdf-service/ .
+COPY --from=go-builder /pdf-service-go/pdf-service /usr/local/bin/pdf-service
 
-# Instalar PM2 para manejar ambos procesos
-RUN npm install -g pm2
-
-# Script de arranque
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 

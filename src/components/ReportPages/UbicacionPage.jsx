@@ -49,7 +49,7 @@ export default function UbicacionPage({
   setIsEditingMap
 }) {
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden font-sans bg-gray-900 text-white">
+    <div className="absolute inset-0 w-full h-full font-sans bg-gray-900 text-white" style={{ overflow: 'clip' }}>
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         {page.fondo_url ? (
@@ -58,7 +58,7 @@ export default function UbicacionPage({
           <div className="w-full h-full bg-gradient-to-b from-blue-500 to-emerald-600" />
         )}
         {isEditMode && (
-          <div className="absolute top-8 right-8 z-20">
+          <div className="absolute top-8 right-8 z-20" data-no-print="true">
             <label className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">
               <Camera className="w-5 h-5" />
               <span className="text-[10px] font-black uppercase tracking-wider">Cambiar Fondo</span>
@@ -167,7 +167,7 @@ export default function UbicacionPage({
         </div>
 
         {/* Page Badge */}
-        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden">
+        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden" data-no-print="true">
            <span className="text-white text-xs font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
         </div>
 

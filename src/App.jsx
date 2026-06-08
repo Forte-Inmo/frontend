@@ -8,6 +8,8 @@ import Campos from './pages/Campos';
 import Informes from './pages/Informes';
 import Ajustes from './pages/Ajustes';
 import InformeBuilder from './pages/InformeBuilder';
+import PlantillaBuilder from './pages/PlantillaBuilder';
+import RenderPage from './pages/RenderPage';
 import Roles from './pages/Roles';
 import Usuarios from './pages/Usuarios';
 import Perfil from './pages/Perfil';
@@ -21,6 +23,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Login />} />
+
       
       {/* Rutas Privadas Globales */}
       <Route element={user ? <Outlet /> : <Navigate to="/" />}>
@@ -45,6 +48,11 @@ function AppRoutes() {
         {/* Builder Full Screen (Fuera del Sidebar) */}
         <Route path="/dashboard/builder/:informeId" element={<InformeBuilder />} />
 
+        {/* Plantilla Builder (Fuera del Sidebar, protegido con settings:manage) */}
+        <Route element={<PermissionGuard permission="settings:manage" />}>
+          <Route path="/dashboard/plantillas/:plantillaId" element={<PlantillaBuilder />} />
+        </Route>
+
       </Route>
     </Routes>
   );
@@ -53,11 +61,16 @@ function AppRoutes() {
 function App() {
   return (
     <SettingsProvider>
-      <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-      </AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/render/:informeId" element={<RenderPage />} />
+          <Route path="/*" element={
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          } />
+        </Routes>
+      </Router>
     </SettingsProvider>
   );
 }

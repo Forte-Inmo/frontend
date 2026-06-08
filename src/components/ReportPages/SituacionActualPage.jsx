@@ -9,7 +9,7 @@ export default function SituacionActualPage({
   uploadImage 
 }) {
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden font-sans bg-gray-900 text-white">
+    <div className="absolute inset-0 w-full h-full font-sans bg-gray-900 text-white" style={{ overflow: 'clip' }}>
       {/* Main Background Image (Ahora ocupa todo el fondo) */}
       <div className="absolute inset-0 z-0">
         {page.fondo_url ? (
@@ -19,7 +19,7 @@ export default function SituacionActualPage({
         )}
         <div className="absolute inset-0 bg-black/20" /> {/* Sutil overlay */}
         {isEditMode && (
-          <div className="absolute top-8 right-8 z-20">
+          <div className="absolute top-8 right-8 z-20" data-no-print="true">
             <label className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">
               <Camera className="w-5 h-5" />
               <span className="text-[10px] font-black uppercase tracking-wider">Cambiar Fondo</span>
@@ -62,14 +62,14 @@ export default function SituacionActualPage({
           {page.imagen_inferior_url ? (
              <img src={page.imagen_inferior_url} className="w-full h-full object-cover" alt="detalle" />
           ) : (
-             <label className="w-full h-full bg-white/10 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-white/20 transition-all border-4 border-dashed border-white/20 rounded-[3rem]">
+             <label className="w-full h-full bg-white/10 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-white/20 transition-all border-4 border-dashed border-white/20 rounded-[3rem]" data-no-print="true">
                 <ImageIcon className="w-12 h-12 opacity-30" />
                 <span className="font-black uppercase tracking-widest opacity-40">Subir Fotografía de Detalle</span>
                 <input type="file" className="hidden" onChange={(e) => uploadImage(e, pageIndex, 'imagen_inferior_url')} accept="image/*" />
              </label>
           )}
           {isEditMode && page.imagen_inferior_url && (
-            <label className="absolute bottom-6 right-6 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl text-white cursor-pointer hover:bg-black/60 transition-all flex items-center gap-2">
+            <label className="absolute bottom-6 right-6 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-2xl text-white cursor-pointer hover:bg-black/60 transition-all flex items-center gap-2" data-no-print="true">
                <Camera className="w-5 h-5" />
                <input type="file" className="hidden" onChange={(e) => uploadImage(e, pageIndex, 'imagen_inferior_url')} accept="image/*" />
             </label>
@@ -112,7 +112,7 @@ export default function SituacionActualPage({
         </div>
 
         {/* Page Badge */}
-        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden">
+        <div className="absolute bottom-10 left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 export-hidden" data-no-print="true">
            <span className="text-white text-xs font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
         </div>
 

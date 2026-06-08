@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Lock, Settings, Building2, Upload, Globe, Image, Phone, MapPin, CheckCircle2, Loader2, Palette, Layers, PieChart, Type } from 'lucide-react';
+import { Lock, Settings, Building2, Upload, Globe, Image, Phone, MapPin, CheckCircle2, Loader2, Palette, Layers, PieChart, Type, FileText, Edit3, Trash2, Plus } from 'lucide-react';
 
 /* ─── Reusable field components ─────────────────────────── */
 
@@ -97,6 +98,7 @@ function SectionCard({ icon: Icon, title, children }) {
 /* ─── Main Component ─────────────────────────────────────── */
 
 export default function Ajustes() {
+  const navigate = useNavigate();
   const { settings, refetchSettings } = useSettings();
   const { hasPermission } = useAuth();
   const canManage = hasPermission('settings:manage');
@@ -104,10 +106,38 @@ export default function Ajustes() {
   const [isSaving, setIsSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
+  const [plantillas, setPlantillas] = useState([]);
 
   useEffect(() => {
     if (settings) setFormData(settings);
   }, [settings]);
+
+  useEffect(() => {
+    fetchPlantillas();
+  }, []);
+
+  const fetchPlantillas = async () => {
+    try {
+      const { data } = await supabase
+        .from('plantillas')
+        .select('*')
+        .order('nombre', { ascending: true });
+      setPlantillas(data || []);
+    } catch (error) {
+      console.error('Error fetching plantillas:', error);
+    }
+  };
+
+  const handleDeletePlantilla = async (id) => {
+    if (!confirm('¿Seguro que deseas eliminar esta plantilla?')) return;
+    try {
+      const { error } = await supabase.from('plantillas').delete().eq('id', id);
+      if (error) throw error;
+      fetchPlantillas();
+    } catch (error) {
+      console.error('Error deleting plantilla:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -159,6 +189,7 @@ export default function Ajustes() {
         org2_phone: formData.org2_phone,
         brand_colors: formData.brand_colors || {},
         enabled_pages: formData.enabled_pages || {},
+        default_plantilla_id: formData.default_plantilla_id || null,
       };
 
       const { error } = await supabase
@@ -366,6 +397,81 @@ export default function Ajustes() {
                 </button>
               </div>
             ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard icon={FileText} title="Plantillas de Informes">
+          <p className="text-xs text-gray-400 mb-6 -mt-2 px-1">Definí plantillas para que los nuevos informes se creen automáticamente con una estructura predefinida.</p>
+          <div className="space-y-6">
+            <div>
+              <FieldLabel>Plantilla por defecto</FieldLabel>
+              <select
+                value={formData.default_plantilla_id || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, default_plantilla_id: e.target.value || null }))}
+                disabled={!canManage}
+                className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer disabled:opacity-50"
+              >
+                <option value="">Sin plantilla (solo carátula)</option>
+                {plantillas.map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <FieldLabel>Plantillas disponibles</FieldLabel>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/dashboard/plantillas/nueva`)}
+                    className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-200"
+                  >
+                    <Plus className="w-4 h-4" /> Nueva
+                  </button>
+                )}
+              </div>
+
+              {plantillas.length === 0 ? (
+                <div className="bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center">
+                  <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-gray-400">No hay plantillas creadas</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {plantillas.map(p => (
+                    <div key={p.id} className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white rounded-xl shadow-sm text-emerald-600">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-black text-gray-800">{p.nombre}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {canManage && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/dashboard/plantillas/${p.id}`)}
+                              className="p-2 hover:bg-emerald-50 rounded-xl text-gray-400 hover:text-emerald-600 transition-all"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePlantilla(p.id)}
+                              className="p-2 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-500 transition-all"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </SectionCard>
 

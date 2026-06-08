@@ -9,5 +9,13 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    proxy: {
+      '/pdf-api': {
+        target: 'http://localhost:3001',
+        rewrite: (path) => path.replace(/^\/pdf-api/, ''),
+      }
+    }
   }
 })

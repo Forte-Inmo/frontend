@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, GripVertical } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
+import { convertShadowForPDF } from '../../utils/pdfShadowUtils';
 
 const RichTextEditor = ({ content, onChange, isEditMode, className, style }) => {
   const editorRef = useRef(null);
@@ -46,6 +47,7 @@ export default function DinamicaPage({
   pageIndex, 
   updatePage, 
   isEditMode = true,
+  isPDFRender = false,
   uploadImage,
   activeBlockIndex,
   setActiveBlockIndex
@@ -146,7 +148,7 @@ export default function DinamicaPage({
   };
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden font-sans bg-gray-900 text-white">
+    <div className="absolute inset-0 w-full h-full font-sans bg-gray-900 text-white" style={{ overflow: 'clip' }}>
       {/* Background Layer */}
       <div className="absolute inset-0 z-0">
         {page.fondo_url ? (
@@ -155,7 +157,7 @@ export default function DinamicaPage({
           <div className="w-full h-full bg-gradient-to-br from-gray-800 via-gray-900 to-black" />
         )}
         {isEditMode && (
-          <div className="absolute top-8 right-8 z-20">
+          <div data-no-print="true" className="absolute top-8 right-8 z-20">
             <label className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">
               <Camera className="w-5 h-5" />
               <input type="file" className="hidden" onChange={(e) => uploadImage(e, pageIndex, 'fondo_url')} accept="image/*" />
@@ -165,10 +167,10 @@ export default function DinamicaPage({
       </div>
 
       {/* Content Layer */}
-      <div className="relative z-10 w-full h-full flex flex-col p-[15mm] overflow-hidden">
+      <div className="relative z-10 w-full h-full flex flex-col p-[15mm]" style={{ overflow: 'clip' }}>
         
         {/* Scrollable Content Area (Clipped at A4 bounds) */}
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 flex flex-col" style={{ overflow: 'clip' }}>
           <div className="flex flex-col gap-6 w-[94%] mx-auto mt-4" style={{ flex: blocks.some(b => b.imageScale === 'full') ? '1 1 0' : '0 0 auto' }}>
             {blocks.map((block, idx) => (
               <div 
@@ -182,37 +184,40 @@ export default function DinamicaPage({
                 className={`relative group transition-all ${dragState.isDragging && dragState.blockIdx === idx ? 'duration-0 z-50' : 'duration-500'} cursor-pointer
                      ${isEditMode && activeBlockIndex === idx ? 'ring-8 ring-emerald-500 ring-offset-8 ring-offset-transparent' : ''}`}
                 onMouseDown={(e) => handleMouseDown(e, idx, block.yOffset)}
-                style={{ 
-                  backgroundColor: block.type === 'title' ? 'transparent' 
-                    : (block.type === 'image' && block.showImageBg === false) ? 'transparent'
-                    : block.variant === 'transparent' ? 'transparent'
-                    : (block.variant === 'fade-top' ? 'transparent' : block.bgColor),
-                  backgroundImage: block.variant === 'fade-top' 
-                    ? `linear-gradient(to bottom, ${block.bgColor} 0%, transparent 100%)` 
-                    : 'none',
-                  color: block.textColor,
-                  borderRadius: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' : '2rem',
-                  padding: block.variant === 'transparent' ? '0'
-                    : block.variant === 'fade-top' ? '1.5rem 1.5rem 3rem' 
-                    : (block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' 
-                    : '1.5rem',
-                  boxShadow: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? 'none' : '0 15px 45px rgba(0,0,0,0.12)',
-                  transform: `translateY(${block.yOffset || 0}mm)`,
-                  cursor: isEditMode ? (dragState.isDragging ? 'grabbing' : 'grab') : 'default',
-                  width: block.type === 'title' ? 'auto' : (() => {
-                    if (!block.width || block.width === 'full') return '100%';
-                    if (block.width === 'half') return '50%';
-                    if (block.width === 'quarter') return '25%';
-                    return `${block.width}%`;
-                  })(),
-                  marginLeft: block.align === 'center' ? 'auto' : block.align === 'right' ? 'auto' : '0',
-                  marginRight: block.align === 'center' ? 'auto' : block.align === 'left' ? 'auto' : '0',
-                  flexGrow: block.imageScale === 'full' ? 1 : 0,
-                  minHeight: block.imageScale === 'full' ? '200px' : 'auto',
-                }}
+                style={(() => { 
+                  const s = { 
+                    backgroundColor: block.type === 'title' ? 'transparent' 
+                      : (block.type === 'image' && block.showImageBg === false) ? 'transparent'
+                      : block.variant === 'transparent' ? 'transparent'
+                      : (block.variant === 'fade-top' ? 'transparent' : block.bgColor),
+                    backgroundImage: block.variant === 'fade-top' 
+                      ? `linear-gradient(to bottom, ${block.bgColor} 0%, transparent 100%)` 
+                      : 'none',
+                    color: block.textColor,
+                    borderRadius: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' : '2rem',
+                    padding: block.variant === 'transparent' ? '0'
+                      : block.variant === 'fade-top' ? '1.5rem 1.5rem 3rem' 
+                      : (block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' 
+                      : '1.5rem',
+                    boxShadow: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? 'none' : '0 15px 45px rgba(0,0,0,0.12)',
+                    transform: `translateY(${block.yOffset || 0}mm)`,
+                    cursor: isEditMode ? (dragState.isDragging ? 'grabbing' : 'grab') : 'default',
+                    width: block.type === 'title' ? 'auto' : (() => {
+                      if (!block.width || block.width === 'full') return '100%';
+                      if (block.width === 'half') return '50%';
+                      if (block.width === 'quarter') return '25%';
+                      return `${block.width}%`;
+                    })(),
+                    marginLeft: block.align === 'center' ? 'auto' : block.align === 'right' ? 'auto' : '0',
+                    marginRight: block.align === 'center' ? 'auto' : block.align === 'left' ? 'auto' : '0',
+                    flexGrow: block.imageScale === 'full' ? 1 : 0,
+                    minHeight: block.imageScale === 'full' ? '200px' : 'auto',
+                  };
+                  return isPDFRender ? convertShadowForPDF(s) : s;
+                })()}
               >
                 {isEditMode && (
-                  <div className="absolute top-4 right-4 text-gray-400 group-hover:text-emerald-500 transition-colors pointer-events-none export-hidden">
+                  <div data-no-print="true" className="absolute top-4 right-4 text-gray-400 group-hover:text-emerald-500 transition-colors pointer-events-none export-hidden">
                     <GripVertical className="w-5 h-5" />
                   </div>
                 )}
@@ -281,7 +286,7 @@ export default function DinamicaPage({
                            })() : {}}
                          />
                      ) : (
-                        <label className="w-full py-8 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-black/10 transition-all">
+                        <label data-no-print="true" className="w-full py-8 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-black/10 transition-all">
                            <div className="p-4 bg-white/20 rounded-full">
                               <Upload className="w-6 h-6 opacity-40" />
                            </div>
@@ -295,7 +300,7 @@ export default function DinamicaPage({
                       </label>
                    )}
                    {isEditMode && block.url && (
-                      <label className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-xl text-white cursor-pointer hover:bg-black/70 z-30">
+                      <label data-no-print="true" className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-xl text-white cursor-pointer hover:bg-black/70 z-30">
                          <Camera className="w-4 h-4" />
                          <input 
                             type="file" 
@@ -329,7 +334,7 @@ export default function DinamicaPage({
           ))}
 
           {isEditMode && (
-            <div className="flex gap-4 mt-4 mb-8">
+            <div data-no-print="true" className="flex gap-4 mt-4 mb-8">
                <button 
                 onClick={() => addBlock('title')}
                 className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
@@ -379,7 +384,7 @@ export default function DinamicaPage({
         </div>
 
         {/* Page Badge */}
-        <div className="absolute bottom-8 left-8 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 export-hidden">
+        <div data-no-print="true" className="absolute bottom-8 left-8 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 export-hidden">
            <span className="text-white text-[10px] font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
         </div>
 

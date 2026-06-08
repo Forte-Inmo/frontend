@@ -292,18 +292,16 @@ export default function Usuarios() {
                        </div>
                     </div>
                  </SectionCard>
-              </form>
-
-              <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
-                 <button type="button" onClick={handleClose} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition">Cancelar</button>
-                 <button 
-                   type="submit"
-                   onClick={handleSave}
-                   className="flex-[2] bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 active:scale-95"
-                 >
-                   <Save className="w-5 h-5" /> Guardar Cambios
-                 </button>
-              </div>
+               <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                  <button type="button" onClick={handleClose} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition">Cancelar</button>
+                  <button 
+                    type="submit"
+                    className="flex-[2] bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 active:scale-95"
+                  >
+                    <Save className="w-5 h-5" /> Guardar Cambios
+                  </button>
+               </div>
+               </form>
            </div>
         </div>
       )}

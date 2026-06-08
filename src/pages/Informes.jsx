@@ -46,7 +46,6 @@ export default function Informes() {
   const navigate = useNavigate();
   const { user, profile, hasPermission } = useAuth();
   const canManage = hasPermission('informes:manage');
-  const { exportPDF } = useExportPDF();
   const [informes, setInformes] = useState(() => {
     try {
       const cached = localStorage.getItem('forte_informes_cache');
@@ -68,8 +67,9 @@ export default function Informes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [selectedCampoId, setSelectedCampoId] = useState('');
-  const [exportingId, setExportingId] = useState(null);
-  
+  const [selectedPlantillaId, setSelectedPlantillaId] = useState('');
+  const [plantillas, setPlantillas] = useState([]);
+
   // Versiones PDF state
   const [versionesModal, setVersionesModal] = useState(null);
   const [versiones, setVersiones] = useState([]);
@@ -93,6 +93,7 @@ export default function Informes() {
       setIsModalOpen(false);
       setIsClosing(false);
       setSelectedCampoId('');
+      setSelectedPlantillaId('');
     }, 400);
   };
 
@@ -148,6 +149,35 @@ export default function Informes() {
     if (!selectedCampoId) return;
     try {
       const selectedCampo = campos.find(c => c.id === selectedCampoId);
+
+      let templatePages = [];
+      if (selectedPlantillaId) {
+        try {
+          const { data: plantilla, error: pError } = await supabase
+            .from('plantillas')
+            .select('pages_data')
+            .eq('id', selectedPlantillaId)
+            .maybeSingle();
+
+          if (pError) console.warn('Error al leer plantilla:', pError);
+
+          if (plantilla?.pages_data?.length > 0) {
+            templatePages = JSON.parse(JSON.stringify(plantilla.pages_data));
+          }
+        } catch (e) {
+          console.warn('Error cargando plantilla:', e.message);
+        }
+      }
+
+      const caratula = {
+        id: crypto.randomUUID(),
+        type: 'CARATULA',
+        titulo: 'CAMPO EN VENTA',
+        portada_url: ''
+      };
+
+      const pages_data = [caratula, ...templatePages];
+
       const { data, error } = await supabase
         .from('informes')
         .insert([{
@@ -156,9 +186,7 @@ export default function Informes() {
           estado: 'borrador',
           created_by: user?.id,
           updated_by: user?.id,
-          pages_data: [
-            { id: crypto.randomUUID(), type: 'CARATULA', titulo: 'CAMPO EN VENTA', portada_url: '' }
-          ]
+          pages_data
         }])
         .select()
         .single();
@@ -189,24 +217,17 @@ export default function Informes() {
     i.campos?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleExport = async (informe) => {
-    try {
-      setExportingId(informe.id);
-      
-      const pageCount = informe.pages_data?.length || 1;
-      
-      await exportPDF({
-        informeId: informe.id,
-        pageCount: pageCount,
-        nombre: informe.titulo,
-        campoNombre: informe.campos?.nombre,
-        userId: user?.id,
-        userName: profile?.full_name || user?.email,
-      });
+  const { exportPDF } = useExportPDF();
+  const [exportingId, setExportingId] = useState(null);
 
+  const handleExport = async (informe) => {
+    setExportingId(informe.id);
+    try {
+      const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}.pdf`.replace(/\s+/g, '_');
+      await exportPDF({ informeId: informe.id, filename });
     } catch (error) {
-      console.error("Error al iniciar exportación:", error);
-      alert(error.message || "Error al exportar PDF");
+      console.error('Error exportando PDF:', error);
+      alert('Error generando PDF: ' + error.message);
     } finally {
       setExportingId(null);
     }
@@ -215,6 +236,23 @@ export default function Informes() {
   const camposDisponibles = campos.filter(campo =>
     !informes.some(inf => inf.campo_id === campo.id)
   );
+
+  const openCreateModal = async () => {
+    setSelectedPlantillaId('');
+    setIsModalOpen(true);
+    try {
+      const [pRes, sRes] = await Promise.all([
+        supabase.from('plantillas').select('*').order('nombre', { ascending: true }),
+        supabase.from('settings').select('default_plantilla_id').limit(1).maybeSingle()
+      ]);
+      setPlantillas(pRes.data || []);
+      if (sRes.data?.default_plantilla_id) {
+        setSelectedPlantillaId(sRes.data.default_plantilla_id);
+      }
+    } catch (e) {
+      console.warn('Error cargando plantillas:', e);
+    }
+  };
 
   return (
     <div className="p-6 sm:p-8 bg-gray-50/50 min-h-full space-y-10">
@@ -247,7 +285,7 @@ export default function Informes() {
           </div>
           {canManage && (
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openCreateModal}
               className="shrink-0 bg-gray-900 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:bg-black transition-all shadow-xl shadow-gray-200 active:scale-95"
             >
               <Plus className="w-5 h-5" />
@@ -294,20 +332,10 @@ export default function Informes() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleExport(informe); }}
-                      disabled={exportingId === informe.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:border-emerald-500 disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:border-emerald-500"
                     >
-                      {exportingId === informe.id ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> 
-                          <span>Generando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Exportar PDF</span>
-                        </>
-                      )}
+                      {exportingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                      <span>{exportingId === informe.id ? 'Generando...' : 'Exportar PDF'}</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleVerVersiones(informe); }}
@@ -344,7 +372,7 @@ export default function Informes() {
           <p className="text-gray-500 font-medium max-w-sm mb-8">Comienza creando tu primer reporte técnico seleccionando un terreno del catastro.</p>
           {canManage && (
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={openCreateModal}
               className="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition shadow-xl shadow-emerald-100"
             >
               Crear Primer Informe
@@ -403,6 +431,28 @@ export default function Informes() {
                     </div>
                   </div>
                 )}
+              </SectionCard>
+
+              <SectionCard icon={FileText} title="Plantilla" color="blue">
+                <div>
+                  <FieldLabel>Estructura predefinida</FieldLabel>
+                  <div className="relative">
+                    <FileText className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+                    <select
+                      value={selectedPlantillaId}
+                      onChange={(e) => setSelectedPlantillaId(e.target.value)}
+                      className="w-full pl-12 pr-6 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer"
+                    >
+                      <option value="">Sin plantilla (solo carátula)</option>
+                      {plantillas.map(p => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                      <ChevronRight className="w-4 h-4 text-gray-400 rotate-90" />
+                    </div>
+                  </div>
+                </div>
               </SectionCard>
             </div>
 

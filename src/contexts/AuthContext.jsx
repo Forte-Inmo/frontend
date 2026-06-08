@@ -3,6 +3,21 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
+const urlParams = new URLSearchParams(window.location.search);
+const exportAccessToken = urlParams.get('access_token');
+const exportRefreshToken = urlParams.get('refresh_token');
+
+if (exportAccessToken && exportRefreshToken) {
+  supabase.auth.setSession({
+    access_token: exportAccessToken,
+    refresh_token: exportRefreshToken,
+  }).then(() => {
+    window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+  }).catch((err) => {
+    console.error('Error setting export session:', err);
+  });
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     try {
