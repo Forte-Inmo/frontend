@@ -225,7 +225,7 @@ export default function AnalisisSueloPage({
           <div className="flex items-center gap-6">
             {settings?.org1_logo_url ? (
               <div className="flex flex-col items-center gap-0.5">
-                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-8 w-auto object-contain" />
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-12 w-auto object-contain" />
               </div>
             ) : (
               <div className="flex flex-col items-center gap-0.5">
@@ -240,7 +240,7 @@ export default function AnalisisSueloPage({
             )}
             {settings?.org2_logo_url ? (
               <div className="flex items-center gap-2">
-                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-8 w-auto object-contain" />
+                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-12 w-auto object-contain" />
               </div>
             ) : (
               <div className="flex items-center gap-2">

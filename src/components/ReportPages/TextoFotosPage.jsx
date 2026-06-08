@@ -81,7 +81,7 @@ export default function TextoFotosPage({
         <div className={`mt-auto pt-10 border-t flex justify-between items-end ${page.fondo_url ? 'border-white/20' : 'border-gray-100'}`}>
            <div className={`flex gap-8 ${page.fondo_url ? 'text-white' : 'opacity-30 grayscale text-black'}`}>
               {settings?.org1_logo_url ? (
-                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-8 w-auto object-contain" />
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-12 w-auto object-contain" />
               ) : (
                 <div className="flex items-center gap-2">
                    <div className={`w-5 h-5 border-2 transform rotate-45 ${page.fondo_url ? 'border-white' : 'border-black'}`}></div>

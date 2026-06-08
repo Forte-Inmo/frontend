@@ -373,7 +373,7 @@ export default function DinamicaPage({
 
            <div className="flex items-center gap-8">
               {settings?.org2_logo_url ? (
-                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-10 w-auto object-contain" />
+                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
               ) : (
                 <>
                   <div className="flex flex-col items-center gap-1">

@@ -149,7 +149,7 @@ export default function CaratulaPage({
           <div className="w-full flex items-center justify-center gap-[15mm] pt-12 border-t border-white/20">
             {settings?.org1_logo_url ? (
               <div className="flex flex-col items-center gap-1 opacity-90">
-                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-12 w-auto object-contain" />
+                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-16 w-auto object-contain" />
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1 opacity-90">
@@ -164,7 +164,7 @@ export default function CaratulaPage({
             )}
             {settings?.org2_logo_url ? (
               <div className="flex flex-col items-center gap-1 opacity-90">
-                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-12 w-auto object-contain" />
+                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-16 w-auto object-contain" />
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1 opacity-90">

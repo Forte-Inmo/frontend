@@ -119,7 +119,7 @@ export default function SituacionActualPage({
            <div className="flex items-center gap-10">
               {settings?.org1_logo_url ? (
                 <div className="flex flex-col items-center gap-1">
-                  <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-10 w-auto object-contain" />
+                  <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-14 w-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1">
@@ -133,7 +133,7 @@ export default function SituacionActualPage({
               )}
               {settings?.org2_logo_url ? (
                 <div className="flex items-center gap-3">
-                  <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-10 w-auto object-contain" />
+                  <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
