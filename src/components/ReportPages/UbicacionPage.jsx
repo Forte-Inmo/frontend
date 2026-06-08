@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Camera, Map as MapIcon, Upload } from 'lucide-react';
 import MapaLaPampa from './MapaLaPampa';
 
@@ -48,6 +48,15 @@ export default function UbicacionPage({
   uploadImage,
   setIsEditingMap
 }) {
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = 'auto';
+      titleRef.current.style.height = titleRef.current.scrollHeight + 'px';
+    }
+  }, [page.titulo]);
+
   return (
     <div className="absolute inset-0 w-full h-full font-sans bg-gray-900 text-white" style={{ overflow: 'clip' }}>
       {/* Background Image */}
@@ -74,16 +83,20 @@ export default function UbicacionPage({
         {/* Title - Full Width */}
         <div className="mt-10 w-full relative z-20">
           <textarea 
+            ref={titleRef}
             value={page.titulo || "UBICACIÓN Y DISTRIBUCIÓN"}
             onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
             disabled={!isEditMode}
-            className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic resize-none w-full h-auto p-0"
+            className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic resize-none w-full h-auto p-0 overflow-hidden"
             style={{ 
               fontSize: `${page.titulo_size || 58}px`,
               color: page.titulo_color || '#ffffff',
               textShadow: '0 4px 12px rgba(0,0,0,0.5)'
             }}
-            rows="2"
+            onInput={(e) => {
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
           />
         </div>
 

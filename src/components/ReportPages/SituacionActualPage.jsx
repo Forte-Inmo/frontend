@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Camera, Image as ImageIcon } from 'lucide-react';
 
 export default function SituacionActualPage({ 
@@ -8,6 +8,23 @@ export default function SituacionActualPage({
   isEditMode = true,
   uploadImage 
 }) {
+  const descripcionRef = useRef(null);
+  const destacadoRef = useRef(null);
+
+  useEffect(() => {
+    if (descripcionRef.current) {
+      descripcionRef.current.style.height = 'auto';
+      descripcionRef.current.style.height = descripcionRef.current.scrollHeight + 'px';
+    }
+  }, [page.descripcion]);
+
+  useEffect(() => {
+    if (destacadoRef.current) {
+      destacadoRef.current.style.height = 'auto';
+      destacadoRef.current.style.height = destacadoRef.current.scrollHeight + 'px';
+    }
+  }, [page.destacado]);
+
   return (
     <div className="absolute inset-0 w-full h-full font-sans bg-gray-900 text-white" style={{ overflow: 'clip' }}>
       {/* Main Background Image (Ahora ocupa todo el fondo) */}
@@ -38,22 +55,30 @@ export default function SituacionActualPage({
               SITUACIÓN ACTUAL
            </h2>
            <textarea 
+             ref={descripcionRef}
              value={page.descripcion || "Actualmente cuenta con 650 vacas madres y 500 terneros/as destetados..."}
              onChange={(e) => updatePage(pageIndex, 'descripcion', e.target.value)}
              disabled={!isEditMode}
-             className="bg-transparent border-none focus:outline-none text-[#003399] text-[22px] font-bold leading-tight resize-none w-full h-auto p-0"
-             rows="4"
+             className="bg-transparent border-none focus:outline-none text-[#003399] text-[22px] font-bold leading-tight resize-none w-full h-auto p-0 overflow-hidden"
+             onInput={(e) => {
+               e.target.style.height = 'auto';
+               e.target.style.height = e.target.scrollHeight + 'px';
+             }}
            />
         </div>
 
         {/* Big Highlighted Text (Middle) */}
         <div className="my-10 px-12">
            <textarea 
+             ref={destacadoRef}
              value={page.destacado || "CABE DESTACAR QUE LA CARGA ANIMAL ACTUAL NO REPRESENTA EL TOPE PRODUCTIVO DEL ESTABLECIMIENTO..."}
              onChange={(e) => updatePage(pageIndex, 'destacado', e.target.value)}
              disabled={!isEditMode}
-             className="bg-transparent border-none focus:outline-none text-white text-[28px] font-black leading-[1.2] uppercase text-center italic drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)] resize-none w-full h-auto p-0"
-             rows="4"
+             className="bg-transparent border-none focus:outline-none text-white text-[28px] font-black leading-[1.2] uppercase text-center italic drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)] resize-none w-full h-auto p-0 overflow-hidden"
+             onInput={(e) => {
+               e.target.style.height = 'auto';
+               e.target.style.height = e.target.scrollHeight + 'px';
+             }}
            />
         </div>
 

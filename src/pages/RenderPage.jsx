@@ -166,8 +166,6 @@ export default function RenderPage() {
         * { font-family: 'Inter', system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         [data-no-print="true"], .export-hidden { display: none !important; }
         textarea, input { outline: none !important; box-shadow: none !important; caret-color: transparent !important; }
-        textarea::-webkit-scrollbar { display: none !important; }
-        textarea { scrollbar-width: none !important; }
         h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
         .bloque, .seccion { break-inside: avoid; page-break-inside: avoid; }
         @page { size: A4; margin: 0; }

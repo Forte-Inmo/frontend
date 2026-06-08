@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Leaf, MapPin, Camera } from 'lucide-react';
 
 export default function CaratulaPage({
@@ -13,6 +13,15 @@ export default function CaratulaPage({
   campoMetadata,
   isEditMode = true
 }) {
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = 'auto';
+      titleRef.current.style.height = titleRef.current.scrollHeight + 'px';
+    }
+  }, [page.titulo]);
+
   const LockBadge = ({ userName }) => (
     <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden" data-no-print="true">
       <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
@@ -74,13 +83,17 @@ export default function CaratulaPage({
           <div className="relative w-full">
             {isLockedByOther(`page_${page.id}_titulo`) && <LockBadge userName={activeLocks[`page_${page.id}_titulo`].userName} />}
             <textarea
+              ref={titleRef}
               value={page.titulo || 'CAMPO EN VENTA'}
               onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
               onFocus={() => acquireLock(`page_${page.id}_titulo`)}
               onBlur={releaseLock}
               disabled={isLockedByOther(`page_${page.id}_titulo`) || !isEditMode}
-              className="w-full text-[75px] leading-[1.1] font-black text-center resize-none bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl transition uppercase text-[#ccff00] placeholder:opacity-50"
-              rows="2"
+              className="w-full text-[75px] leading-[1.1] font-black text-center resize-none bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl transition uppercase text-[#ccff00] placeholder:opacity-50 overflow-hidden"
+              onInput={(e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+              }}
             />
           </div>
 
