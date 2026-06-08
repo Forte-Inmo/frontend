@@ -56,7 +56,7 @@ app.post('/generate-pdf', async (req, res) => {
         `-sColorConversionStrategy=CMYK ` +
         `-sColorConversionStrategyForImages=CMYK ` +
         `-dOverrideICC -o ${tmpOutput} ${tmpInput}`,
-        { timeout: 30000 }
+        { timeout: 120000 }
       );
       const cmykPdf = fs.readFileSync(tmpOutput);
       res.setHeader('Content-Type', 'application/pdf');
