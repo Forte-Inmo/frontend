@@ -17,14 +17,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
   content: {
     position: 'relative',
     height: '100%',
@@ -112,10 +104,7 @@ export default function SituacionActualPDF({ page, pageIndex, campoMetadata, bra
   return (
     <Page size="A4" orientation="portrait" style={styles.page}>
       {page.fondo_url ? (
-        <>
-          <Image src={page.fondo_url} style={styles.bgImage} />
-          <View style={styles.overlay} />
-        </>
+        <Image src={page.fondo_url} style={styles.bgImage} />
       ) : (
         <View style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#1e293b' }} />
       )}

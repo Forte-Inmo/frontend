@@ -164,7 +164,7 @@ export default function RenderPage() {
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap&subset=latin-ext');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,500;1,600;1,700;1,900&display=swap&subset=latin-ext');
         * { font-family: 'Inter', system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         [data-no-print="true"], .export-hidden { display: none !important; }
         textarea, input { outline: none !important; box-shadow: none !important; caret-color: transparent !important; }

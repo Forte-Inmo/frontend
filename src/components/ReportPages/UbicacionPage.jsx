@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { Camera, Map as MapIcon, Upload } from 'lucide-react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
+import { Camera, GripVertical } from 'lucide-react';
 import MapaLaPampa from './MapaLaPampa';
 
 const RichTextEditor = ({ content, onChange, isEditMode, className, style }) => {
@@ -47,23 +47,83 @@ export default function UbicacionPage({
   isEditMode = true,
   uploadImage,
   setIsEditingMap,
+  setActiveBlockIndex,
   settings = null
 }) {
   const titleRef = useRef(null);
+  const hasBlocks = !!page.blocks;
+  const blocks = useMemo(() => page.blocks || [], [page.blocks]);
 
   useEffect(() => {
-    if (titleRef.current) {
+    if (!hasBlocks && titleRef.current) {
       titleRef.current.style.height = 'auto';
       titleRef.current.style.height = titleRef.current.scrollHeight + 'px';
     }
-  }, [page.titulo]);
+  }, [page.titulo, hasBlocks]);
+
+  const [dragState, setDragState] = useState({ isDragging: false, startX: 0, startY: 0, startXOffset: 0, startYOffset: 0, blockIdx: null });
+
+  const handleGrabMouseDown = (e, idx, block) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    setDragState({
+      isDragging: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      startXOffset: block.xOffset || 0,
+      startYOffset: block.yOffset || 0,
+      blockIdx: idx
+    });
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!dragState.isDragging) return;
+      const container = document.getElementById(`page-${pageIndex}`);
+      if (!container) return;
+
+      const scaleFactor = 297 / container.offsetHeight;
+      const deltaX = (e.clientX - dragState.startX) * scaleFactor;
+      const deltaY = (e.clientY - dragState.startY) * scaleFactor;
+
+      const newBlocks = [...blocks];
+      newBlocks[dragState.blockIdx] = {
+        ...newBlocks[dragState.blockIdx],
+        xOffset: Math.round((dragState.startXOffset + deltaX) * 10) / 10,
+        yOffset: Math.round((dragState.startYOffset + deltaY) * 10) / 10,
+      };
+      updatePage(pageIndex, 'blocks', newBlocks);
+    };
+
+    const handleMouseUp = () => {
+      if (dragState.isDragging) {
+        setDragState({ isDragging: false, startX: 0, startY: 0, startXOffset: 0, startYOffset: 0, blockIdx: null });
+      }
+    };
+
+    if (dragState.isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragState, pageIndex, updatePage, blocks]);
+
+  const updateBlock = (blockIndex, field, value) => {
+    const newBlocks = [...blocks];
+    newBlocks[blockIndex] = { ...newBlocks[blockIndex], [field]: value };
+    updatePage(pageIndex, 'blocks', newBlocks);
+  };
 
   return (
     <div className="absolute inset-0 w-full h-full font-sans bg-gray-900 text-white" style={{ overflow: 'clip' }}>
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         {page.fondo_url ? (
-          <img src={page.fondo_url} className="w-full h-full object-cover brightness-90" alt="fondo" />
+          <img src={page.fondo_url} className="w-full h-full object-cover" alt="fondo" />
         ) : (
           <div className="w-full h-full bg-gradient-to-b from-blue-500 to-emerald-600" />
         )}
@@ -83,25 +143,110 @@ export default function UbicacionPage({
         
         {/* Content Area with bottom padding for footer */}
         <div className="absolute inset-0 flex flex-col px-[15mm] pt-[10mm] pb-[140px]" style={{ overflow: 'clip' }}>
-          {/* Title - Full Width */}
-          <div className="mt-10 w-full relative z-20">
-            <textarea 
-              ref={titleRef}
-              value={page.titulo || "UBICACIÓN Y DISTRIBUCIÓN"}
-              onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
-              disabled={!isEditMode}
-              className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic resize-none w-full h-auto p-0 overflow-hidden"
-              style={{ 
-                fontSize: `${page.titulo_size || 58}px`,
-                color: page.titulo_color || '#ffffff',
-                textShadow: '0 4px 12px rgba(0,0,0,0.5)'
-              }}
-              onInput={(e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-              }}
-            />
-          </div>
+
+          {hasBlocks ? (
+            <>
+              {/* Title - full width, fixed */}
+              {blocks.filter(b => b.type === 'title').map((block) => (
+                <div key={block.id} className="mt-10 w-full relative z-20">
+                  <div
+                    contentEditable={isEditMode}
+                    onBlur={(e) => updateBlock(blocks.indexOf(block), 'title', e.currentTarget.innerText)}
+                    suppressContentEditableWarning={true}
+                    className="w-full bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic p-0 whitespace-pre-wrap"
+                    style={{
+                      fontSize: typeof block.titleSize === 'number' ? `${block.titleSize}px` : block.titleSize === 'sm' ? '24px' : block.titleSize === 'lg' ? '48px' : block.titleSize === 'xl' ? '64px' : '58px',
+                      color: block.textColor || '#ffffff',
+                      textShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                    }}
+                  >{block.title || ''}</div>
+                </div>
+              ))}
+
+              {/* Draggable text blocks - freely positionable */}
+              {blocks.filter(b => b.type !== 'title').map((block) => {
+                const realIdx = blocks.indexOf(block);
+                return (
+                  <div
+                    key={block.id || realIdx}
+                    className={`group ${dragState.isDragging && dragState.blockIdx === realIdx ? 'z-50' : 'z-20'}`}
+                    onClick={(e) => {
+                      if (isEditMode && setActiveBlockIndex) {
+                        e.stopPropagation();
+                        setActiveBlockIndex(realIdx);
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: `${block.xOffset || 15}mm`,
+                      top: `${block.yOffset || 80}mm`,
+                      width: '55%',
+                    }}
+                  >
+                    {isEditMode && (
+                      <div
+                        className="absolute -left-10 top-1/2 -translate-y-1/2 z-30 p-1.5 bg-white/20 backdrop-blur-md rounded-lg text-white/60 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity export-hidden hover:bg-white/40"
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          handleGrabMouseDown(e, realIdx, block);
+                        }}
+                      >
+                        <GripVertical className="w-5 h-5" />
+                      </div>
+                    )}
+                    <RichTextEditor
+                      content={block.text || ''}
+                      onChange={(html) => updateBlock(realIdx, 'text', html)}
+                      isEditMode={isEditMode}
+                      className="bg-transparent border-none focus:outline-none font-bold leading-tight drop-shadow-md min-h-[1em] w-full p-0 text-justify outline-none
+                           [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal"
+                      style={{
+                        fontSize: typeof block.textSize === 'number' ? `${block.textSize}px` : block.textSize === 'sm' ? '16px' : block.textSize === 'lg' ? '24px' : block.textSize === 'xl' ? '32px' : '20px',
+                        color: block.textColor || '#ffffff'
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <>
+              {/* Title - Full Width (legacy) */}
+              <div className="mt-10 w-full relative z-20">
+                <textarea 
+                  ref={titleRef}
+                  value={page.titulo || "UBICACIÓN Y DISTRIBUCIÓN"}
+                  onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
+                  disabled={!isEditMode}
+                  className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tight drop-shadow-lg leading-none italic resize-none w-full h-auto p-0 overflow-hidden"
+                  style={{ 
+                    fontSize: `${page.titulo_size || 58}px`,
+                    color: page.titulo_color || '#ffffff',
+                    textShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                  }}
+                  onInput={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                />
+              </div>
+
+              {/* Description - left column (legacy) */}
+              <div className="mt-4 flex-1 w-[55%] relative z-20">
+                <RichTextEditor 
+                  content={page.descripcion || "Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo Provincia de La Pampa."}
+                  onChange={(html) => updatePage(pageIndex, 'descripcion', html)}
+                  isEditMode={isEditMode}
+                  className="bg-transparent border-none focus:outline-none font-bold leading-tight drop-shadow-md min-h-[1em] w-full p-0 text-justify outline-none
+                       [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal"
+                  style={{ 
+                    fontSize: `${page.descripcion_size || 26}px`,
+                    color: page.descripcion_color || '#ffffff'
+                  }}
+                />
+              </div>
+            </>
+          )}
 
           {/* Map - original large size, absolute bottom-right */}
           <div className="absolute right-[-10mm] bottom-[30mm] w-[180mm] h-[190mm] z-10 flex items-center justify-center">
@@ -122,21 +267,6 @@ export default function UbicacionPage({
               pinColor={page.pin_color || '#003399'}
               deptColors={page.deptColors || {}}
               deptTextColors={page.deptTextColors || {}}
-            />
-          </div>
-
-          {/* Description - left column, clears the map */}
-          <div className="mt-4 flex-1 w-[55%] relative z-20">
-            <RichTextEditor 
-              content={page.descripcion || "Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo Provincia de La Pampa."}
-              onChange={(html) => updatePage(pageIndex, 'descripcion', html)}
-              isEditMode={isEditMode}
-              className="bg-transparent border-none focus:outline-none font-bold leading-tight drop-shadow-md min-h-[1em] w-full p-0 text-justify outline-none
-                   [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal"
-              style={{ 
-                fontSize: `${page.descripcion_size || 26}px`,
-                color: page.descripcion_color || '#ffffff'
-              }}
             />
           </div>
 

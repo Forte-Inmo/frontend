@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, GripVertical } from 'lucide-react';
+import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, GripVertical, Table as TableIcon, X } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { convertShadowForPDF } from '../../utils/pdfShadowUtils';
 
@@ -120,31 +120,49 @@ export default function DinamicaPage({
   const addBlock = (type = 'text') => {
     const newBlocks = [...(page.blocks || [])];
     const newIndex = newBlocks.length;
-    newBlocks.push({
+    const base = {
       id: crypto.randomUUID(),
-      type: type,
-      title: type === 'image' ? 'Nuevo Mapa / Gráfico' : (type === 'title' ? 'TÍTULO' : ''),
-      text: type === 'text' ? 'Nuevo bloque de información...' : '',
-      url: '',
-      bgColor: type === 'title' ? brandColors.primary : '#ffffff',
-      textColor: type === 'title' ? '#ffffff' : '#003399'
-    });
+      type,
+      title: '',
+      bgColor: '#ffffff',
+      textColor: '#003399'
+    };
+    if (type === 'title') {
+      newBlocks.push({ ...base, title: 'TÍTULO', bgColor: brandColors.primary, textColor: '#ffffff' });
+    } else if (type === 'image') {
+      newBlocks.push({ ...base, title: 'Nuevo Mapa / Gráfico', url: '' });
+    } else if (type === 'table') {
+      newBlocks.push({
+        ...base,
+        title: 'TABLA DE DATOS',
+        tableData: {
+          columns: [
+            { id: 'c1', header: 'Columna 1' },
+            { id: 'c2', header: 'Columna 2' },
+            { id: 'c3', header: 'Columna 3' },
+          ],
+          rows: [
+            { id: 'r1', cells: { c1: '', c2: '', c3: '' } },
+          ],
+          headerBgColor: brandColors.primary,
+          headerTextColor: '#ffffff',
+          borderColor: '#e5e4e7',
+          alternateRowColor: '#f4f4f5',
+        },
+      });
+    } else {
+      newBlocks.push({ ...base, text: 'Nuevo bloque de información...' });
+    }
     updatePage(pageIndex, 'blocks', newBlocks);
     if (isEditMode) setActiveBlockIndex(newIndex);
   };
 
-  const titleSizes = {
-    sm: 'text-[24px]',
-    md: 'text-[32px]',
-    lg: 'text-[48px]',
-    xl: 'text-[64px]'
-  };
-
-  const textSizes = {
-    sm: 'text-[16px]',
-    md: 'text-[20px]',
-    lg: 'text-[24px]',
-    xl: 'text-[32px]'
+  const getTextSize = (s) => {
+    if (s === 'sm') return 16;
+    if (s === 'lg') return 24;
+    if (s === 'xl') return 32;
+    if (typeof s === 'number') return s;
+    return 20;
   };
 
   return (
@@ -152,7 +170,7 @@ export default function DinamicaPage({
       {/* Background Layer */}
       <div className="absolute inset-0 z-0">
         {page.fondo_url ? (
-          <img src={page.fondo_url} className="w-full h-full object-cover opacity-60" alt="fondo" />
+          <img src={page.fondo_url} className="w-full h-full object-cover" alt="fondo" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-800 via-gray-900 to-black" />
         )}
@@ -190,8 +208,8 @@ export default function DinamicaPage({
                       : (block.type === 'image' && block.showImageBg === false) ? 'transparent'
                       : block.variant === 'transparent' ? 'transparent'
                       : (block.variant === 'fade-top' ? 'transparent' : block.bgColor),
-                    backgroundImage: block.variant === 'fade-top' 
-                      ? `linear-gradient(to bottom, ${block.bgColor} 0%, transparent 100%)` 
+                    backgroundImage: block.variant === 'fade-top'
+                      ? `linear-gradient(to bottom, ${block.bgColor} 50%, transparent ${block.fadeStop ?? 85}%)` 
                       : 'none',
                     color: block.textColor,
                     borderRadius: (block.variant === 'fade-top' || block.variant === 'transparent' || block.type === 'title' || (block.type === 'image' && block.showImageBg === false)) ? '0' : '2rem',
@@ -222,43 +240,53 @@ export default function DinamicaPage({
                   </div>
                 )}
 
-                 {block.type === "title" && (
-                     <div 
-                       style={{ backgroundColor: block.bgColor, color: block.textColor, display: 'inline-block', maxWidth: 'calc(100% - 2rem)' }}
-                       className="px-6 py-4 rounded-[1.5rem] shadow-xl"
-                    >
-                        <div
-                          contentEditable={isEditMode}
-                          onBlur={(e) => updateBlock(idx, "title", e.currentTarget.innerText)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                            }
-                          }}
-                          suppressContentEditableWarning={true}
-                          className={`font-black uppercase tracking-tighter italic leading-[1.1] outline-none min-w-[40px] ${titleSizes[block.titleSize || "md"]}`}
-                          style={{ color: block.textColor, wordBreak: 'break-all', display: 'block', width: 'fit-content', maxWidth: '100%' }}
-                        >
-                          {block.title || "TÍTULO"}
-                        </div>
+                  {block.type === "title" && (
+                      <div 
+                        style={{ backgroundColor: block.bgColor, color: block.textColor, display: 'inline-block', maxWidth: 'calc(100% - 2rem)' }}
+                        className="px-6 py-4 rounded-[1.5rem] shadow-xl"
+                     >
+                         <div
+                           contentEditable={isEditMode}
+                           onBlur={(e) => updateBlock(idx, "title", e.currentTarget.innerText)}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter') {
+                               e.preventDefault();
+                             }
+                           }}
+                           suppressContentEditableWarning={true}
+                           className="font-black uppercase tracking-tighter italic leading-[1.1] outline-none"
+                           style={{
+                             color: block.textColor,
+                             overflowWrap: 'break-word',
+                             wordBreak: 'break-word',
+                             fontSize: typeof block.titleSize === 'number' ? block.titleSize : (block.titleSize === 'sm' ? 24 : block.titleSize === 'lg' ? 48 : block.titleSize === 'xl' ? 64 : 32)
+                           }}
+                         >
+                           {block.title || "TÍTULO"}
+                         </div>
 
-                    </div>
-                 )}
+                     </div>
+                  )}
 
                  {/* Common Title Area (Only for non-title types) */}
-                {block.type !== "title" && !block.hideTitle && (
-                  <div className="flex items-center justify-between mb-3 pr-10">
-                     <textarea 
-                        value={block.title}
-                        placeholder={block.type === 'image' ? "TÍTULO DEL MAPA / GRÁFICO" : "TÍTULO"}
-                        onChange={(e) => updateBlock(idx, 'title', e.target.value)}
-                        disabled={!isEditMode}
-                        className={`bg-transparent border-none focus:outline-none font-black uppercase tracking-tighter italic leading-none w-full resize-none p-0 ${titleSizes[block.titleSize || 'md']}`}
-                        style={{ color: block.textColor }}
-                        rows="1"
-                     />
-                  </div>
-                )}
+                 {block.type !== "title" && !block.hideTitle && (
+                   <div className="flex items-center justify-between mb-3 pr-10">
+                      <div
+                        contentEditable={isEditMode}
+                        onBlur={(e) => updateBlock(idx, 'title', e.currentTarget.innerText)}
+                        suppressContentEditableWarning={true}
+                        className="bg-transparent border-none focus:outline-none font-black uppercase tracking-tighter italic leading-none w-full p-0"
+                        style={{
+                          color: block.textColor,
+                          overflowWrap: 'break-word',
+                          wordBreak: 'break-word',
+                          fontSize: typeof block.titleSize === 'number' ? block.titleSize : (block.titleSize === 'sm' ? 24 : block.titleSize === 'lg' ? 48 : block.titleSize === 'xl' ? 64 : 32)
+                        }}
+                      >
+                        {block.title || (block.type === 'image' ? "TÍTULO DEL MAPA / GRÁFICO" : "TÍTULO")}
+                      </div>
+                   </div>
+                 )}
 
                 {/* Specific Content Type */}
                  {block.type === 'image' ? (
@@ -311,6 +339,171 @@ export default function DinamicaPage({
                       </label>
                    )}
                 </div>
+              ) : block.type === 'table' ? (
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 14, color: block.textColor, backgroundColor: block.variant === 'transparent' ? 'transparent' : (block.bgColor || '#ffffff') }}>
+                    <thead>
+                      <tr>
+                        {/* spacer columna para botón eliminar fila (siempre presente para alinear con tbody) */}
+                        <th
+                          style={{
+                            border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                            padding: isEditMode ? '4px' : 0,
+                            width: 32,
+                            backgroundColor: block.tableData.headerBgColor || brandColors.primary,
+                          }}
+                        >
+                          {isEditMode && (
+                            <button
+                              onClick={() => {
+                                const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                const newId = `c${Date.now()}`;
+                                td.columns.push({ id: newId, header: `Columna ${td.columns.length + 1}` });
+                                td.rows = td.rows.map(r => ({
+                                  ...r,
+                                  cells: { ...r.cells, [newId]: '' },
+                                }));
+                                updateBlock(idx, 'tableData', td);
+                              }}
+                              className="text-white/80 hover:text-white transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          )}
+                        </th>
+                        {block.tableData.columns.map((col, ci) => (
+                          <th
+                            key={col.id}
+                            style={{
+                              backgroundColor: block.tableData.headerBgColor || brandColors.primary,
+                              color: block.tableData.headerTextColor || '#ffffff',
+                              border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                              padding: '10px 12px',
+                              fontWeight: 900,
+                              fontSize: 13,
+                              textAlign: 'left',
+                              position: 'relative',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                contentEditable={isEditMode}
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                  td.columns[ci] = { ...td.columns[ci], header: e.currentTarget.innerText };
+                                  updateBlock(idx, 'tableData', td);
+                                }}
+                                className="outline-none flex-1"
+                              >
+                                {col.header}
+                              </span>
+                              {isEditMode && (
+                                <button
+                                  onClick={() => {
+                                    const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                    td.columns.splice(ci, 1);
+                                    td.rows = td.rows.map(r => {
+                                      const c = { ...r.cells };
+                                      delete c[col.id];
+                                      return { ...r, cells: c };
+                                    });
+                                    updateBlock(idx, 'tableData', td);
+                                  }}
+                                  className="text-white/60 hover:text-red-300 transition-colors shrink-0"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {block.tableData.rows.map((row, ri) => (
+                        <tr
+                          key={row.id}
+                          style={{
+                            backgroundColor: block.variant === 'transparent' ? 'transparent' : (ri % 2 === 1 ? (block.tableData.alternateRowColor || '#f4f4f5') : (block.bgColor || '#ffffff')),
+                          }}
+                        >
+                          <td
+                            style={{
+                              border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                              padding: 0,
+                              width: 32,
+                              textAlign: 'center',
+                              verticalAlign: 'middle',
+                            }}
+                          >
+                            {isEditMode && (
+                              <button
+                                onClick={() => {
+                                  const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                  td.rows.splice(ri, 1);
+                                  updateBlock(idx, 'tableData', td);
+                                }}
+                                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </td>
+                          {block.tableData.columns.map((col) => (
+                            <td
+                              key={col.id}
+                              style={{
+                                border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                                padding: '8px 12px',
+                                fontWeight: 500,
+                              }}
+                            >
+                              <span
+                                contentEditable={isEditMode}
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                  td.rows[ri] = { ...td.rows[ri], cells: { ...td.rows[ri].cells, [col.id]: e.currentTarget.innerText } };
+                                  updateBlock(idx, 'tableData', td);
+                                }}
+                                className="outline-none block min-h-[1em]"
+                              >
+                                {row.cells[col.id] || ''}
+                              </span>
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      {isEditMode && (
+                        <tr>
+                          <td
+                            colSpan={block.tableData.columns.length + 1}
+                            style={{
+                              border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                              padding: 4,
+                            }}
+                          >
+                            <button
+                              onClick={() => {
+                                const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                const newId = `r${Date.now()}`;
+                                const cells = {};
+                                td.columns.forEach(c => { cells[c.id] = ''; });
+                                td.rows.push({ id: newId, cells });
+                                updateBlock(idx, 'tableData', td);
+                              }}
+                              className="w-full py-2 text-gray-400 hover:text-emerald-500 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" /> Añadir Fila
+                            </button>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <div className="relative w-full">
                    {block.type !== "title" && (
@@ -318,14 +511,11 @@ export default function DinamicaPage({
                     content={block.text}
                     onChange={(html) => updateBlock(idx, 'text', html)}
                     isEditMode={isEditMode}
-                    className={`bg-transparent border-none focus:outline-none min-h-[1em] w-full p-0 text-justify outline-none
-                         ${textSizes[block.textSize || 'md']} 
-                         font-medium
-                         leading-tight
-                         [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal`}
-                    style={{ 
-                      color: block.textColor,
-                    }}
+                     className={`bg-transparent border-none focus:outline-none min-h-[1em] w-full p-0 text-justify outline-none
+                          font-medium
+                          leading-tight
+                          [&_p]:m-0 [&_ul]:m-0 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:m-0 [&_ol]:pl-6 [&_ol]:list-decimal`}
+                     style={{ color: block.textColor, fontSize: getTextSize(block.textSize) }}
                   />
                   )}
                 </div>
@@ -348,12 +538,18 @@ export default function DinamicaPage({
                  <Palette className="w-6 h-6 group-hover:scale-125 transition-transform" /> Bloque
                </button>
                <button 
-                onClick={() => addBlock('image')}
-                className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
-               >
-                 <ImageIcon className="w-6 h-6 group-hover:scale-125 transition-transform" /> Imagen
-               </button>
-            </div>
+                 onClick={() => addBlock('image')}
+                 className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
+                >
+                  <ImageIcon className="w-6 h-6 group-hover:scale-125 transition-transform" /> Imagen
+                </button>
+               <button 
+                 onClick={() => addBlock('table')}
+                 className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
+                >
+                  <TableIcon className="w-6 h-6 group-hover:scale-125 transition-transform" /> Tabla
+                </button>
+             </div>
           )}
         </div>
       </div>

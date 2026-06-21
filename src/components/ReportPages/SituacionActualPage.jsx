@@ -35,7 +35,6 @@ export default function SituacionActualPage({
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-800 to-blue-900" />
         )}
-        <div className="absolute inset-0 bg-black/20" /> {/* Sutil overlay */}
         {isEditMode && (
           <div className="absolute top-8 right-8 z-20" data-no-print="true">
             <label className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">

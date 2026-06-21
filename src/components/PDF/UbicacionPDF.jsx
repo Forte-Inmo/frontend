@@ -16,7 +16,6 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    opacity: 0.9,
   },
   gradientFallback: {
     position: 'absolute',
@@ -94,6 +93,9 @@ function stripHtml(html) {
 }
 
 export default function UbicacionPDF({ page, pageIndex, campoMetadata, brandColors }) {
+  const hasBlocks = !!page.blocks;
+  const blocks = page.blocks || [];
+
   return (
     <Page size="A4" orientation="portrait" style={styles.page}>
       {page.fondo_url ? (
@@ -103,13 +105,31 @@ export default function UbicacionPDF({ page, pageIndex, campoMetadata, brandColo
       )}
 
       <View style={styles.content}>
-        <Text style={styles.title}>
-          {(page.titulo || 'UBICACIÓN Y DISTRIBUCIÓN').toUpperCase()}
-        </Text>
+        {hasBlocks ? (
+          <>
+            {blocks.map((block) => (
+              block.type === 'title' ? (
+                <Text key={block.id} style={[styles.title, { transform: `translateY(${block.yOffset || 0}mm)` }]}>
+                  {(block.title || 'UBICACIÓN Y DISTRIBUCIÓN').toUpperCase()}
+                </Text>
+              ) : (
+                <Text key={block.id} style={[styles.description, { transform: `translateY(${block.yOffset || 0}mm)` }]}>
+                  {stripHtml(block.text || 'Establecimiento agropecuario...')}
+                </Text>
+              )
+            ))}
+          </>
+        ) : (
+          <>
+            <Text style={styles.title}>
+              {(page.titulo || 'UBICACIÓN Y DISTRIBUCIÓN').toUpperCase()}
+            </Text>
 
-        <Text style={styles.description}>
-          {stripHtml(page.descripcion || 'Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo, Provincia de La Pampa.')}
-        </Text>
+            <Text style={styles.description}>
+              {stripHtml(page.descripcion || 'Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo, Provincia de La Pampa.')}
+            </Text>
+          </>
+        )}
 
         <View style={styles.footer}>
           <View>

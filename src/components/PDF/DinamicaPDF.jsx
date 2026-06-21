@@ -16,7 +16,6 @@ const styles = StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    opacity: 0.6,
   },
   gradientFallback: {
     position: 'absolute',
@@ -123,6 +122,7 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
       <View style={styles.content}>
         <View style={styles.blocksContainer}>
           {blocks.map((block, idx) => {
+            const fadeStop = block.fadeStop ?? 85;
             const bgColor = block.type === 'title'
               ? 'transparent'
               : (block.variant === 'transparent' || (block.type === 'image' && block.showImageBg === false))
@@ -136,7 +136,7 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
             if (block.type === 'title') {
               return (
                 <View key={block.id || idx} style={[styles.blockTitle, { backgroundColor: block.bgColor || COLORS.primary }]}>
-                  <Text style={[styles.blockTitleText, { color: block.textColor || '#ffffff', fontSize: block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24 }]}>
+                  <Text style={[styles.blockTitleText, { color: block.textColor || '#ffffff', fontSize: typeof block.titleSize === 'number' ? block.titleSize : (block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24) }]}>
                     {(block.title || 'TÍTULO').toUpperCase()}
                   </Text>
                 </View>
@@ -151,7 +151,7 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
                   borderColor: 'rgba(0,0,0,0.05)',
                 }]}>
                   {!block.hideTitle && block.title && (
-                    <Text style={{ fontSize: block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24, fontWeight: 900, color: textColor, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: -0.5, marginBottom: 8 }}>
+                    <Text style={{ fontSize: typeof block.titleSize === 'number' ? block.titleSize : (block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24), fontWeight: 900, color: textColor, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: -0.5, marginBottom: 8 }}>
                       {block.title.toUpperCase()}
                     </Text>
                   )}
@@ -162,18 +162,79 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
               );
             }
 
+            if (block.type === 'table') {
+              const td = block.tableData || { columns: [], rows: [] };
+              const tableBorderColor = td.borderColor || '#e5e4e7';
+              const headerBg = td.headerBgColor || brandColors?.primary || '#107549';
+              const headerText = td.headerTextColor || '#ffffff';
+              const altRow = td.alternateRowColor || '#f4f4f5';
+              const cellPadding = 6;
+              return (
+                <View key={block.id || idx} style={[styles.blockContent, {
+                  backgroundColor: bgColor,
+                  backgroundImage: block.variant === 'fade-top' ? `linear-gradient(to bottom, ${block.bgColor || '#ffffff'} 50%, transparent ${fadeStop}%)` : undefined,
+                  borderWidth: (block.variant !== 'transparent' && block.variant !== 'fade-top' && block.type !== 'title') ? 0 : 0,
+                  padding: 10,
+                }]}>
+                  {!block.hideTitle && block.title && (
+                    <Text style={{ fontSize: typeof block.titleSize === 'number' ? block.titleSize : (block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24), fontWeight: 900, color: textColor, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: -0.5, lineHeight: 1, marginBottom: 8 }}>
+                      {block.title.toUpperCase()}
+                    </Text>
+                  )}
+                  {/* Header row */}
+                  <View style={{ flexDirection: 'row', borderLeftWidth: 1, borderLeftColor: tableBorderColor, borderRightWidth: 1, borderRightColor: tableBorderColor, borderTopWidth: 1, borderTopColor: tableBorderColor }}>
+                    {td.columns.map((col, ci) => (
+                      <View key={col.id} style={{
+                        flex: 1,
+                        backgroundColor: headerBg,
+                        padding: cellPadding,
+                        borderRightWidth: ci < td.columns.length - 1 ? 1 : 0,
+                        borderRightColor: tableBorderColor,
+                        borderBottomWidth: 1,
+                        borderBottomColor: tableBorderColor,
+                      }}>
+                        <Text style={{ color: headerText, fontWeight: 900, fontSize: 10 }}>{col.header}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  {/* Data rows */}
+                  {td.rows.map((row, ri) => (
+                    <View key={row.id} style={{
+                      flexDirection: 'row',
+                      backgroundColor: ri % 2 === 1 ? altRow : 'transparent',
+                      borderLeftWidth: 1, borderLeftColor: tableBorderColor,
+                      borderRightWidth: 1, borderRightColor: tableBorderColor,
+                    }}>
+                      {td.columns.map((col, ci) => (
+                        <View key={col.id} style={{
+                          flex: 1,
+                          padding: cellPadding,
+                          borderRightWidth: ci < td.columns.length - 1 ? 1 : 0,
+                          borderRightColor: tableBorderColor,
+                          borderBottomWidth: 1,
+                          borderBottomColor: tableBorderColor,
+                        }}>
+                          <Text style={{ color: textColor, fontSize: 9, fontWeight: 500 }}>{row.cells[col.id] || ''}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))}
+                </View>
+              );
+            }
+
             return (
               <View key={block.id || idx} style={[styles.blockContent, {
                 backgroundColor: bgColor,
-                backgroundImage: block.variant === 'fade-top' ? `linear-gradient(to bottom, ${block.bgColor || '#ffffff'} 0%, transparent 100%)` : undefined,
+                backgroundImage: block.variant === 'fade-top' ? `linear-gradient(to bottom, ${block.bgColor || '#ffffff'} 50%, transparent ${fadeStop}%)` : undefined,
                 borderWidth: (block.variant !== 'transparent' && block.variant !== 'fade-top' && block.type !== 'title') ? 0 : 0,
               }]}>
                 {!block.hideTitle && block.title && (
-                  <Text style={{ fontSize: block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24, fontWeight: 900, color: textColor, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: -0.5, lineHeight: 1, marginBottom: 8 }}>
+                  <Text style={{ fontSize: typeof block.titleSize === 'number' ? block.titleSize : (block.titleSize === 'sm' ? 18 : block.titleSize === 'lg' ? 36 : block.titleSize === 'xl' ? 48 : 24), fontWeight: 900, color: textColor, textTransform: 'uppercase', fontStyle: 'italic', letterSpacing: -0.5, lineHeight: 1, marginBottom: 8 }}>
                     {block.title.toUpperCase()}
                   </Text>
                 )}
-                <Text style={[styles.blockText, { color: textColor, fontSize: block.textSize === 'sm' ? 14 : block.textSize === 'lg' ? 20 : block.textSize === 'xl' ? 28 : 16 }]}>
+                <Text style={[styles.blockText, { color: textColor, fontSize: typeof block.textSize === 'number' ? block.textSize : (block.textSize === 'sm' ? 14 : block.textSize === 'lg' ? 20 : block.textSize === 'xl' ? 28 : 16) }]}>
                   {stripHtml(block.text || '')}
                 </Text>
               </View>

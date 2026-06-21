@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useSettings } from '../contexts/SettingsContext';
@@ -6,7 +6,8 @@ import {
   Save, ChevronLeft, Plus, Trash2, Layout, Map as MapIcon,
   Image as ImageIcon, Type, PieChart, Settings, Layers,
   Camera, Upload, X, Bold, Italic, List, MapPin, Check,
-  ChevronUp, ChevronDown, LogOut, Loader2
+  ChevronUp, ChevronDown, LogOut, Loader2, GripVertical, Palette,
+  Table as TableIcon, FileSpreadsheet
 } from 'lucide-react';
 import { usePageEditor } from '../hooks/usePageEditor';
 
@@ -39,6 +40,7 @@ export default function PlantillaBuilder() {
   const [plantilla, setPlantilla] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isNew, setIsNew] = useState(false);
+  const [activeColorPicker, setActiveColorPicker] = useState(null);
 
   const brandColors = (settings?.brand_colors && Object.keys(settings.brand_colors).length > 0) ? settings.brand_colors : {
     primary: '#107549', secondary: '#003399', accent: '#ccff00', dark: '#001a4d'
@@ -48,6 +50,7 @@ export default function PlantillaBuilder() {
 
   const {
     pagesData, setPagesData,
+    resetPagesData,
     activePageIndex, setActivePageIndex,
     activeBlockIndex, setActiveBlockIndex,
     isEditingMap, setIsEditingMap,
@@ -82,7 +85,7 @@ export default function PlantillaBuilder() {
       if (error) throw error;
       setPlantilla(data);
       if (data.pages_data && data.pages_data.length > 0) {
-        setPagesData(data.pages_data);
+        resetPagesData(data.pages_data);
       }
       setLoading(false);
       setTimeout(() => { isFirstLoad.current = false; }, 1000);
@@ -137,6 +140,48 @@ export default function PlantillaBuilder() {
   if (loading) return <div className="p-10 text-center flex h-screen items-center justify-center text-emerald-800 font-bold text-xl">Cargando Plantilla...</div>;
 
   const activePage = pagesData[activePageIndex];
+
+  function ThumbnailPreview({ page, pageIndex }) {
+    const containerRef = useRef(null);
+    const [scale, setScale] = useState(0);
+
+    useLayoutEffect(() => {
+      if (containerRef.current) {
+        const w = containerRef.current.offsetWidth;
+        const h = containerRef.current.offsetHeight;
+        setScale(Math.min(w / 794, h / 1123));
+      }
+    }, []);
+
+    const noop = () => {};
+
+    return (
+      <div ref={containerRef} className="w-full h-full overflow-hidden rounded-[2rem]" style={{ pointerEvents: 'none' }}>
+        {scale > 0 && (
+          <div style={{ width: '794px', height: '1123px', transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+            {page.type === 'CARATULA' && (
+              <CaratulaPage page={page} pageIndex={pageIndex} updatePage={noop} isEditMode={false} uploadImage={noop} campoMetadata={null} settings={settings} acquireLock={noop} releaseLock={noop} isLockedByOther={() => false} activeLocks={{}} />
+            )}
+            {page.type === 'UBICACION' && (
+              <UbicacionPage page={page} pageIndex={pageIndex} updatePage={noop} isEditMode={false} uploadImage={noop} setIsEditingMap={noop} activeBlockIndex={null} setActiveBlockIndex={noop} settings={settings} acquireLock={noop} releaseLock={noop} isLockedByOther={() => false} activeLocks={{}} />
+            )}
+            {page.type === 'SITUACION_ACTUAL' && (
+              <SituacionActualPage page={page} pageIndex={pageIndex} updatePage={noop} isEditMode={false} uploadImage={noop} settings={settings} acquireLock={noop} releaseLock={noop} isLockedByOther={() => false} activeLocks={{}} />
+            )}
+            {page.type === 'DINAMICA' && (
+              <DinamicaPage page={page} pageIndex={pageIndex} updatePage={noop} isEditMode={false} uploadImage={noop} activeBlockIndex={null} setActiveBlockIndex={noop} settings={settings} acquireLock={noop} releaseLock={noop} isLockedByOther={() => false} activeLocks={{}} />
+            )}
+            {page.type === 'ANALISIS_SUELO' && (
+              <AnalisisSueloPage page={page} pageIndex={pageIndex} updatePage={noop} updatePageSlice={noop} addSlice={noop} uploadImage={noop} settings={settings} acquireLock={noop} releaseLock={noop} isLockedByOther={() => false} activeLocks={{}} />
+            )}
+            {page.type === 'TEXTO_FOTOS' && (
+              <TextoFotosPage page={page} pageIndex={pageIndex} updatePage={noop} settings={settings} acquireLock={noop} releaseLock={noop} isLockedByOther={() => false} activeLocks={{}} />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col font-sans">
@@ -387,7 +432,7 @@ export default function PlantillaBuilder() {
                   </div>
                 </div>
               </div>
-            ) : isEditingPage && activeBlockIndex !== null && activePage?.type === 'DINAMICA' && activePage.blocks[activeBlockIndex] ? (
+            ) : isEditingPage && activeBlockIndex !== null && (activePage?.type === 'DINAMICA' || activePage?.type === 'UBICACION') && activePage.blocks[activeBlockIndex] ? (
               <div className="p-8 space-y-8 animate-in fade-in slide-in-from-right duration-300">
                 <div className="flex flex-col gap-4">
                   <div className="h-1 w-12 bg-emerald-500 rounded-full"></div>
@@ -402,43 +447,99 @@ export default function PlantillaBuilder() {
                   <div className="space-y-4">
                     <FieldLabel>Paleta de Colores</FieldLabel>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-4 rounded-3xl space-y-3">
+                      <div className="bg-gray-50 p-4 rounded-3xl space-y-3 relative">
                         <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block text-center">Fondo</span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {Object.entries(brandColors).map(([key, color]) => (
-                            <button
-                              key={key}
-                              onClick={() => {
-                                const newBlocks = [...activePage.blocks];
-                                newBlocks[activeBlockIndex].bgColor = color;
-                                updatePage(activePageIndex, 'blocks', newBlocks);
-                              }}
-                              className="w-full aspect-square rounded-xl border border-gray-100 relative flex items-center justify-center transition-transform active:scale-90"
-                              style={{ backgroundColor: color }}
-                            >
-                              {activePage.blocks[activeBlockIndex].bgColor === color && <Check className="w-4 h-4 text-white mix-blend-difference" />}
-                            </button>
-                          ))}
-                        </div>
+                        <button
+                          onClick={() => setActiveColorPicker(activeColorPicker === 'bg' ? null : 'bg')}
+                          className="w-full aspect-square rounded-xl border-2 border-gray-200 relative overflow-hidden transition-transform active:scale-90"
+                          style={{ backgroundColor: activePage.blocks[activeBlockIndex].bgColor || brandColors.primary }}
+                        />
+                        {activeColorPicker === 'bg' && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
+                              <div className="grid grid-cols-2 gap-2 mb-2">
+                                {Object.entries(brandColors).map(([key, color]) => (
+                                  <button
+                                    key={key}
+                                    onClick={() => {
+                                      const newBlocks = [...activePage.blocks];
+                                      newBlocks[activeBlockIndex].bgColor = color;
+                                      updatePage(activePageIndex, 'blocks', newBlocks);
+                                      setActiveColorPicker(null);
+                                    }}
+                                    className="w-full aspect-square rounded-xl border border-gray-100 relative flex items-center justify-center transition-transform active:scale-90"
+                                    style={{ backgroundColor: color }}
+                                  >
+                                    {activePage.blocks[activeBlockIndex].bgColor === color && <Check className="w-4 h-4 text-white mix-blend-difference" />}
+                                  </button>
+                                ))}
+                              </div>
+                              <label className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
+                                <Palette className="w-4 h-4 text-gray-400" />
+                                <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                <input
+                                  type="color"
+                                  className="hidden"
+                                  value={activePage.blocks[activeBlockIndex].bgColor || brandColors.primary}
+                                  onChange={(e) => {
+                                    const newBlocks = [...activePage.blocks];
+                                    newBlocks[activeBlockIndex].bgColor = e.target.value;
+                                    updatePage(activePageIndex, 'blocks', newBlocks);
+                                    setActiveColorPicker(null);
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div className="bg-gray-50 p-4 rounded-3xl space-y-3">
+                      <div className="bg-gray-50 p-4 rounded-3xl space-y-3 relative">
                         <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block text-center">Texto</span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {['#ffffff', '#000000', '#ccff00', '#107549'].map((color) => (
-                            <button
-                              key={color}
-                              onClick={() => {
-                                const newBlocks = [...activePage.blocks];
-                                newBlocks[activeBlockIndex].textColor = color;
-                                updatePage(activePageIndex, 'blocks', newBlocks);
-                              }}
-                              className="w-full aspect-square rounded-xl border border-gray-100 relative flex items-center justify-center transition-transform active:scale-90"
-                              style={{ backgroundColor: color }}
-                            >
-                              {activePage.blocks[activeBlockIndex].textColor === color && <Check className="w-4 h-4 text-white mix-blend-difference" />}
-                            </button>
-                          ))}
-                        </div>
+                        <button
+                          onClick={() => setActiveColorPicker(activeColorPicker === 'text' ? null : 'text')}
+                          className="w-full aspect-square rounded-xl border-2 border-gray-200 relative overflow-hidden transition-transform active:scale-90"
+                          style={{ backgroundColor: activePage.blocks[activeBlockIndex].textColor || '#ffffff' }}
+                        />
+                        {activeColorPicker === 'text' && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
+                              <div className="grid grid-cols-2 gap-2 mb-2">
+                                {['#ffffff', '#000000', ...Object.values(brandColors)].map((color) => (
+                                  <button
+                                    key={color}
+                                    onClick={() => {
+                                      const newBlocks = [...activePage.blocks];
+                                      newBlocks[activeBlockIndex].textColor = color;
+                                      updatePage(activePageIndex, 'blocks', newBlocks);
+                                      setActiveColorPicker(null);
+                                    }}
+                                    className="w-full aspect-square rounded-xl border border-gray-100 relative flex items-center justify-center transition-transform active:scale-90"
+                                    style={{ backgroundColor: color }}
+                                  >
+                                    {activePage.blocks[activeBlockIndex].textColor === color && <Check className="w-4 h-4 text-white mix-blend-difference" />}
+                                  </button>
+                                ))}
+                              </div>
+                              <label className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
+                                <Palette className="w-4 h-4 text-gray-400" />
+                                <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                <input
+                                  type="color"
+                                  className="hidden"
+                                  value={activePage.blocks[activeBlockIndex].textColor || '#ffffff'}
+                                  onChange={(e) => {
+                                    const newBlocks = [...activePage.blocks];
+                                    newBlocks[activeBlockIndex].textColor = e.target.value;
+                                    updatePage(activePageIndex, 'blocks', newBlocks);
+                                    setActiveColorPicker(null);
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -465,6 +566,35 @@ export default function PlantillaBuilder() {
                       ))}
                     </div>
                   </div>
+
+                  {(activePage.blocks[activeBlockIndex].variant || 'standard') === 'fade-top' && (
+                    <div className="space-y-4">
+                      <FieldLabel>Altura del Fundido</FieldLabel>
+                      <div className="bg-gray-50 p-4 rounded-3xl">
+                        <input
+                          type="range"
+                          min="50"
+                          max="100"
+                          step="5"
+                          value={activePage.blocks[activeBlockIndex].fadeStop ?? 85}
+                          onChange={(e) => {
+                            const newBlocks = [...activePage.blocks];
+                            newBlocks[activeBlockIndex].fadeStop = Number(e.target.value);
+                            updatePage(activePageIndex, 'blocks', newBlocks);
+                          }}
+                          className="w-full accent-emerald-500"
+                        />
+                        <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2">
+                          <span>50%</span>
+                          <span>{activePage.blocks[activeBlockIndex].fadeStop ?? 85}%</span>
+                          <span>100%</span>
+                        </div>
+                        <p className="text-[8px] font-bold text-gray-400 uppercase text-center mt-1">
+                          El fundido siempre arranca al 50% del bloque
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {activePage.blocks[activeBlockIndex].type === 'image' && (
                     <>
@@ -511,61 +641,203 @@ export default function PlantillaBuilder() {
                     </>
                   )}
 
-                  {activePage.blocks[activeBlockIndex].type !== 'title' && (
-                    <div className="space-y-4">
-                      <FieldLabel>Ancho del Bloque</FieldLabel>
-                      <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
-                        {[
-                          { id: 'full', label: '1/1' },
-                          { id: 'half', label: '1/2' },
-                          { id: 'custom', label: 'Custom' }
-                        ].map(option => {
-                          const currentW = activePage.blocks[activeBlockIndex].width || 'full';
-                          const isActive = option.id === 'custom'
-                            ? (typeof currentW === 'number' || currentW === 'quarter')
-                            : currentW === option.id;
-                          return (
-                            <button
-                              key={option.id}
-                              onClick={() => {
-                                const newBlocks = [...activePage.blocks];
-                                newBlocks[activeBlockIndex].width = option.id === 'custom' ? 25 : option.id;
-                                updatePage(activePageIndex, 'blocks', newBlocks);
-                              }}
-                              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${isActive ? 'bg-white shadow-md text-emerald-600 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                              {option.label}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  {activePage.blocks[activeBlockIndex].type === 'table' && (
+                     <div className="space-y-6">
+                       <div className="space-y-3">
+                         <FieldLabel>Configuración de Tabla</FieldLabel>
+                         <div className="flex gap-2">
+                           <button
+                             onClick={() => {
+                               const newBlocks = [...activePage.blocks];
+                               const td = { ...newBlocks[activeBlockIndex].tableData, columns: [...newBlocks[activeBlockIndex].tableData.columns], rows: [...newBlocks[activeBlockIndex].tableData.rows] };
+                               const newId = `c${Date.now()}`;
+                               td.columns.push({ id: newId, header: `Columna ${td.columns.length + 1}` });
+                               td.rows = td.rows.map(r => ({
+                                 ...r,
+                                 cells: { ...r.cells, [newId]: '' },
+                               }));
+                               newBlocks[activeBlockIndex].tableData = td;
+                               updatePage(activePageIndex, 'blocks', newBlocks);
+                             }}
+                             className="flex-1 py-3 bg-gray-50 hover:bg-emerald-50 rounded-xl text-[10px] font-black text-gray-600 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
+                           >
+                             <Plus className="w-4 h-4" /> Columna
+                           </button>
+                           <button
+                             onClick={() => {
+                               const newBlocks = [...activePage.blocks];
+                               const td = { ...newBlocks[activeBlockIndex].tableData, columns: [...newBlocks[activeBlockIndex].tableData.columns], rows: [...newBlocks[activeBlockIndex].tableData.rows] };
+                               const newId = `r${Date.now()}`;
+                               const cells = {};
+                               td.columns.forEach(c => { cells[c.id] = ''; });
+                               td.rows.push({ id: newId, cells });
+                               newBlocks[activeBlockIndex].tableData = td;
+                               updatePage(activePageIndex, 'blocks', newBlocks);
+                             }}
+                             className="flex-1 py-3 bg-gray-50 hover:bg-emerald-50 rounded-xl text-[10px] font-black text-gray-600 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
+                           >
+                             <Plus className="w-4 h-4" /> Fila
+                           </button>
+                         </div>
+                       </div>
 
-                      {(() => {
-                        const w = activePage.blocks[activeBlockIndex].width || 'full';
-                        return (typeof w === 'number' || w === 'quarter');
-                      })() && (
-                        <div className="px-1 mt-2">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ancho Manual</span>
-                            <span className="text-[10px] font-black text-emerald-600">
-                              {activePage.blocks[activeBlockIndex].width === 'quarter' ? '25%' : `${activePage.blocks[activeBlockIndex].width}%`}
-                            </span>
-                          </div>
-                          <input type="range" min="10" max="100" step="5"
-                            value={activePage.blocks[activeBlockIndex].width === 'quarter' ? 25 : activePage.blocks[activeBlockIndex].width}
-                            onChange={(e) => {
-                              const newBlocks = [...activePage.blocks];
-                              newBlocks[activeBlockIndex].width = parseInt(e.target.value);
-                              updatePage(activePageIndex, 'blocks', newBlocks);
-                            }}
-                            className="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                          />
+                       <div className="h-px bg-gray-100" />
+
+                        <div className="bg-gray-50 p-3 rounded-3xl space-y-2">
+                          <FieldLabel>Colores de Tabla</FieldLabel>
+                          {[
+                            { key: 'tableHeaderBg', prop: 'headerBgColor', label: 'Fondo Enc.', colors: Object.values(brandColors), def: brandColors.primary },
+                            { key: 'tableHeaderText', prop: 'headerTextColor', label: 'Texto Enc.', colors: ['#ffffff', '#000000', ...Object.values(brandColors)], def: '#ffffff' },
+                            { key: 'tableBorder', prop: 'borderColor', label: 'Borde', colors: ['#e5e4e7', '#d1d5db', '#9ca3af', '#6b7280', ...Object.values(brandColors)], def: '#e5e4e7' },
+                            { key: 'tableAltRow', prop: 'alternateRowColor', label: 'Fila Alt.', colors: ['#f4f4f5', '#e5e4e7', '#f0fdf4', '#ffffff', ...Object.values(brandColors)], def: '#f4f4f5' },
+                          ].map(({ key, prop, colors, label, def }) => (
+                            <div key={key} className="relative flex items-center justify-between">
+                              <span className="text-[9px] font-bold text-gray-600">{label}</span>
+                              <button
+                                onClick={() => setActiveColorPicker(activeColorPicker === key ? null : key)}
+                                className="w-7 h-7 rounded-lg border-2 border-gray-200 transition-transform active:scale-90"
+                                style={{ backgroundColor: activePage.blocks[activeBlockIndex].tableData?.[prop] || def }}
+                              />
+                              {activeColorPicker === key && (
+                                <>
+                                  <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
+                                  <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 min-w-[160px]">
+                                    <div className="grid grid-cols-4 gap-1.5 mb-1.5">
+                                      {colors.map((color) => (
+                                        <button
+                                          key={color}
+                                          onClick={() => {
+                                            const newBlocks = [...activePage.blocks];
+                                            newBlocks[activeBlockIndex].tableData = { ...newBlocks[activeBlockIndex].tableData, [prop]: color };
+                                            updatePage(activePageIndex, 'blocks', newBlocks);
+                                            setActiveColorPicker(null);
+                                          }}
+                                          className="w-7 h-7 rounded-lg border border-gray-100 transition-transform active:scale-90"
+                                          style={{ backgroundColor: color }}
+                                        >
+                                          {(activePage.blocks[activeBlockIndex].tableData?.[prop] || def) === color && <Check className="w-3 h-3 mx-auto text-white mix-blend-difference" />}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <label className="flex items-center justify-center gap-1.5 p-1 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                      <Palette className="w-3 h-3 text-gray-400" />
+                                      <span className="text-[7px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                      <input
+                                        type="color"
+                                        className="hidden"
+                                        value={activePage.blocks[activeBlockIndex].tableData?.[prop] || def}
+                                        onChange={(e) => {
+                                          const newBlocks = [...activePage.blocks];
+                                          newBlocks[activeBlockIndex].tableData = { ...newBlocks[activeBlockIndex].tableData, [prop]: e.target.value };
+                                          updatePage(activePageIndex, 'blocks', newBlocks);
+                                          setActiveColorPicker(null);
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      )}
+
+                       <div className="h-px bg-gray-100" />
+
+                       <div className="space-y-3">
+                         <FieldLabel>Importar Datos</FieldLabel>
+                         <label className="flex items-center gap-3 bg-gray-50 hover:bg-emerald-50 rounded-2xl p-4 cursor-pointer transition-all border-2 border-dashed border-gray-200 hover:border-emerald-300">
+                           <FileSpreadsheet className="w-5 h-5 text-gray-400" />
+                           <div>
+                             <span className="text-[10px] font-black text-gray-600 block">XLSX / CSV</span>
+                             <span className="text-[8px] font-bold text-gray-400">Sobrescribe datos actuales</span>
+                           </div>
+                           <input
+                             type="file"
+                             className="hidden"
+                             accept=".xlsx,.xls,.csv"
+                             onChange={async (e) => {
+                               const file = e.target.files[0];
+                               if (!file) return;
+                               try {
+                                 const XLSX = await import('xlsx');
+                                 const data = await file.arrayBuffer();
+                                 const workbook = XLSX.read(data, { type: 'array' });
+                                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                                 const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+                                 if (json.length === 0) return;
+                                 const headers = Object.keys(json[0]);
+                                 const newColumns = headers.map((h, i) => ({
+                                   id: `c${i + 1}`,
+                                   header: h,
+                                 }));
+                                 const newRows = json.map((row) => ({
+                                   id: `r${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+                                   cells: Object.fromEntries(newColumns.map((col, i) => [col.id, String(row[headers[i]] || '')])),
+                                 }));
+                                 const newBlocks = [...activePage.blocks];
+                                 newBlocks[activeBlockIndex].tableData = {
+                                   ...newBlocks[activeBlockIndex].tableData,
+                                   columns: newColumns,
+                                   rows: newRows,
+                                 };
+                                 updatePage(activePageIndex, 'blocks', newBlocks);
+                               } catch (err) {
+                                 console.error('Error importing file:', err);
+                                 alert('Error al importar el archivo. Asegúrate de que sea un XLSX o CSV válido.');
+                               }
+                               e.target.value = '';
+                             }}
+                           />
+                         </label>
+                       </div>
+                     </div>
+                   )}
+
+                  {activePage.blocks[activeBlockIndex].type !== 'title' && (
+                    <div className="space-y-3">
+                      <FieldLabel>Ancho del Bloque</FieldLabel>
+                      <div className="bg-gray-50 p-4 rounded-3xl">
+                        <input
+                          type="range"
+                          min="10"
+                          max="100"
+                          step="5"
+                          value={(() => {
+                            const w = activePage.blocks[activeBlockIndex].width;
+                            if (!w || w === 'full') return 100;
+                            if (w === 'half') return 50;
+                            if (w === 'quarter') return 25;
+                            return w;
+                          })()}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            const newBlocks = [...activePage.blocks];
+                            newBlocks[activeBlockIndex].width = val;
+                            updatePage(activePageIndex, 'blocks', newBlocks);
+                          }}
+                          className="w-full accent-emerald-600"
+                        />
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="text-[10px] font-bold text-gray-400">10%</span>
+                          <span className="text-xs font-bold text-emerald-600">
+                            {(() => {
+                              const w = activePage.blocks[activeBlockIndex].width;
+                              if (!w || w === 'full') return '100%';
+                              if (w === 'half') return '50%';
+                              if (w === 'quarter') return '25%';
+                              return `${w}%`;
+                            })()}
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400">100%</span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  {(activePage.blocks[activeBlockIndex].width && activePage.blocks[activeBlockIndex].width !== 'full') && (
+                  {(() => {
+                    const w = activePage.blocks[activeBlockIndex].width;
+                    return w && w !== 'full' && w !== 100;
+                  })() && (
                     <div className="flex bg-gray-50 p-1 rounded-xl gap-1 mt-2">
                       {['left', 'center', 'right'].map(align => (
                         <button
@@ -598,85 +870,111 @@ export default function PlantillaBuilder() {
                             newBlocks[activeBlockIndex].hideTitle = !newBlocks[activeBlockIndex].hideTitle;
                             updatePage(activePageIndex, 'blocks', newBlocks);
                           }}
-                          className={`w-14 h-7 rounded-full transition-all relative ${!newBlocks[activeBlockIndex].hideTitle ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                          className={`w-14 h-7 rounded-full transition-all relative ${!activePage.blocks[activeBlockIndex].hideTitle ? 'bg-emerald-500' : 'bg-gray-200'}`}
                         >
-                          <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${!newBlocks[activeBlockIndex].hideTitle ? 'right-1' : 'left-1'}`} />
+                           <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${!activePage.blocks[activeBlockIndex].hideTitle ? 'right-1' : 'left-1'}`} />
                         </button>
-                      </div>
+                       </div>
 
-                      <div className="space-y-4">
-                        <FieldLabel>Formato de Texto</FieldLabel>
-                        <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem] gap-1">
-                          <button
-                            onMouseDown={(e) => { e.preventDefault(); document.execCommand('bold', false); }}
-                            className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${selectionFormat.bold ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50'}`}
-                          >
-                            <Bold className="w-4 h-4" />
-                          </button>
-                          <button
-                            onMouseDown={(e) => { e.preventDefault(); document.execCommand('italic', false); }}
-                            className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${selectionFormat.italic ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50'}`}
-                          >
-                            <Italic className="w-4 h-4" />
-                          </button>
-                          <button
-                            onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList', false); }}
-                            className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${selectionFormat.list ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50'}`}
-                          >
-                            <List className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                       {!activePage.blocks[activeBlockIndex].hideTitle && (
+                         <div className="space-y-3">
+                           <FieldLabel>Tamaño Título</FieldLabel>
+                           <div className="bg-gray-50 p-4 rounded-3xl">
+                             <input
+                               type="range"
+                               min="16"
+                               max="80"
+                               step="1"
+                               value={typeof activePage.blocks[activeBlockIndex]?.titleSize === 'number' ? activePage.blocks[activeBlockIndex].titleSize : 58}
+                               onChange={(e) => {
+                                 const val = parseInt(e.target.value);
+                                 const newBlocks = [...activePage.blocks];
+                                 newBlocks[activeBlockIndex].titleSize = val;
+                                 updatePage(activePageIndex, 'blocks', newBlocks);
+                               }}
+                               className="w-full accent-emerald-600"
+                             />
+                             <div className="flex justify-between items-center mt-2">
+                               <span className="text-[10px] font-bold text-gray-400">16px</span>
+                               <span className="text-xs font-bold text-emerald-600">
+                                 {typeof activePage.blocks[activeBlockIndex]?.titleSize === 'number' ? activePage.blocks[activeBlockIndex].titleSize : 58}px
+                               </span>
+                               <span className="text-[10px] font-bold text-gray-400">80px</span>
+                             </div>
+                           </div>
+                         </div>
+                       )}
 
-                  <div className="h-px bg-gray-100"></div>
+                       <div className="space-y-4">
+                         <FieldLabel>Formato de Texto</FieldLabel>
+                         <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem] gap-1">
+                           <button
+                             onMouseDown={(e) => { e.preventDefault(); document.execCommand('bold', false); }}
+                             className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${selectionFormat.bold ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50'}`}
+                           >
+                             <Bold className="w-4 h-4" />
+                           </button>
+                           <button
+                             onMouseDown={(e) => { e.preventDefault(); document.execCommand('italic', false); }}
+                             className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${selectionFormat.italic ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50'}`}
+                           >
+                             <Italic className="w-4 h-4" />
+                           </button>
+                           <button
+                             onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList', false); }}
+                             className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${selectionFormat.list ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50'}`}
+                           >
+                             <List className="w-4 h-4" />
+                           </button>
+                         </div>
+                       </div>
 
-                  <div className="space-y-6">
-                    {!activePage.blocks[activeBlockIndex].hideTitle && (
-                      <div className="space-y-3">
-                        <FieldLabel>Tamaño Título</FieldLabel>
-                        <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem]">
-                          {['sm', 'md', 'lg', 'xl'].map(size => (
-                            <button
-                              key={size}
-                              onClick={() => {
-                                const newBlocks = [...activePage.blocks];
-                                newBlocks[activeBlockIndex].titleSize = size;
-                                updatePage(activePageIndex, 'blocks', newBlocks);
-                              }}
-                              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${(activePage.blocks[activeBlockIndex].titleSize || 'md') === size ? 'bg-white shadow-md text-emerald-600 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                              {size.toUpperCase()}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                       {activePage.blocks[activeBlockIndex].type !== 'title' && (
+                         <div className="space-y-3">
+                           <FieldLabel>Tamaño Cuerpo de Texto</FieldLabel>
+                           <div className="bg-gray-50 p-4 rounded-3xl">
+                             <input
+                               type="range"
+                               min="10"
+                               max="40"
+                               step="1"
+                               value={(() => {
+                                 const s = activePage.blocks[activeBlockIndex].textSize;
+                                 if (s === 'sm') return 16;
+                                 if (s === 'lg') return 24;
+                                 if (s === 'xl') return 32;
+                                 if (typeof s === 'number') return s;
+                                 return 20;
+                               })()}
+                               onChange={(e) => {
+                                 const val = parseInt(e.target.value);
+                                 const newBlocks = [...activePage.blocks];
+                                 newBlocks[activeBlockIndex].textSize = val;
+                                 updatePage(activePageIndex, 'blocks', newBlocks);
+                               }}
+                               className="w-full accent-emerald-600"
+                             />
+                             <div className="flex justify-between items-center mt-2">
+                               <span className="text-[10px] font-bold text-gray-400">10px</span>
+                               <span className="text-xs font-bold text-emerald-600">
+                                 {(() => {
+                                   const s = activePage.blocks[activeBlockIndex].textSize;
+                                   if (s === 'sm') return '16px';
+                                   if (s === 'lg') return '24px';
+                                   if (s === 'xl') return '32px';
+                                   if (typeof s === 'number') return `${s}px`;
+                                   return '20px';
+                                 })()}
+                               </span>
+                               <span className="text-[10px] font-bold text-gray-400">40px</span>
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                     </>
+                   )}
 
-                    {activePage.blocks[activeBlockIndex].type !== 'title' && (
-                      <div className="space-y-3">
-                        <FieldLabel>Tamaño Cuerpo de Texto</FieldLabel>
-                        <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem]">
-                          {['sm', 'md', 'lg', 'xl'].map(size => (
-                            <button
-                              key={size}
-                              onClick={() => {
-                                const newBlocks = [...activePage.blocks];
-                                newBlocks[activeBlockIndex].textSize = size;
-                                updatePage(activePageIndex, 'blocks', newBlocks);
-                              }}
-                              className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${(activePage.blocks[activeBlockIndex].textSize || 'md') === size ? 'bg-white shadow-md text-emerald-600 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                              {size.toUpperCase()}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="h-px bg-gray-100"></div>
+                   <div className="h-px bg-gray-100"></div>
 
                   <div className="space-y-4">
                     <FieldLabel>Imagen de Fondo de Página</FieldLabel>
@@ -771,14 +1069,10 @@ export default function PlantillaBuilder() {
                       key={page.id}
                       onClick={() => {
                         setActivePageIndex(index);
-                        setIsEditingPage(true);
-                        if (page.type === 'UBICACION') { setIsEditingMap(true); setActiveBlockIndex(null); }
-                        else if (page.type === 'DINAMICA') { setIsEditingMap(false); setActiveBlockIndex(0); }
-                        else { setIsEditingMap(false); setActiveBlockIndex(null); }
                         document.getElementById(`page-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }}
-                      className={`relative h-[180px] bg-white rounded-[2rem] cursor-pointer transition-all flex flex-col items-center justify-center p-4 group
-                        ${activePageIndex === index ? 'ring-4 ring-emerald-500 ring-offset-4 shadow-xl' : 'border border-gray-100 opacity-60 hover:opacity-100'}`}
+                      className={`relative aspect-[210/297] rounded-[2rem] cursor-pointer transition-all group
+                        ${activePageIndex === index ? 'ring-[5px] ring-emerald-500 shadow-xl bg-emerald-500' : 'border border-gray-100 opacity-60 hover:opacity-100 bg-white'}`}
                     >
                       <span className="absolute -top-3 -left-3 w-8 h-8 bg-white border-2 border-gray-100 text-emerald-800 flex justify-center items-center rounded-2xl text-[10px] font-black shadow-lg z-10">{index + 1}</span>
 
@@ -803,17 +1097,23 @@ export default function PlantillaBuilder() {
                         <Trash2 className="w-4 h-4" />
                       </button>
 
-                      <div className="w-full h-full bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden">
-                        {page.type === 'CARATULA' && (page.portada_url ? <img src={page.portada_url} className="w-full h-full object-cover" /> : <Layout className="w-8 h-8 text-gray-200" />)}
-                        {page.type === 'UBICACION' && (page.mapa_url ? <img src={page.mapa_url} className="w-full h-full object-cover" /> : <MapIcon className="w-8 h-8 text-gray-200" />)}
-                        {page.type === 'SITUACION_ACTUAL' && (page.fondo_url ? <img src={page.fondo_url} className="w-full h-full object-cover" /> : <ImageIcon className="w-8 h-8 text-gray-200" />)}
-                        {page.type === 'DINAMICA' && (page.fondo_url ? <img src={page.fondo_url} className="w-full h-full object-cover" /> : <Layout className="w-8 h-8 text-gray-200" />)}
-                        {page.type === 'TEXTO_FOTOS' && <Type className="w-8 h-8 text-gray-200" />}
-                        {page.type === 'ANALISIS_SUELO' && <PieChart className="w-8 h-8 text-gray-200" />}
-                      </div>
+                      <ThumbnailPreview page={page} pageIndex={index} />
 
-                      <div className="absolute bottom-4 inset-x-4 bg-white/90 backdrop-blur-md py-2 px-3 rounded-xl border border-gray-100 text-center">
-                        <div className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{page.type}</div>
+                      <div className="absolute bottom-4 inset-x-4 bg-white/90 backdrop-blur-md py-2 px-3 rounded-xl border border-gray-100 text-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => {
+                            const val = e.target.innerText.trim();
+                            updatePage(index, 'pageTitle', val || page.type);
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } }}
+                          className="text-[8px] font-black text-gray-400 uppercase tracking-widest outline-none focus:text-emerald-600"
+                        >
+                          {page.pageTitle || page.type}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -839,20 +1139,22 @@ export default function PlantillaBuilder() {
             <div
               key={page.id}
               id={`page-${pageIndex}`}
-              onClick={() => {
+              onClickCapture={() => {
                 setActivePageIndex(pageIndex);
                 setIsEditingPage(true);
-                if (page.type === 'UBICACION') { setIsEditingMap(true); setActiveBlockIndex(null); }
+                if (page.type === 'UBICACION') {
+                  if (page.blocks) { setIsEditingMap(false); setActiveBlockIndex(0); }
+                  else { setIsEditingMap(true); setActiveBlockIndex(null); }
+                }
                 else if (page.type === 'DINAMICA') { setIsEditingMap(false); setActiveBlockIndex(0); }
                 else { setIsEditingMap(false); setActiveBlockIndex(null); }
-                document.getElementById(`page-${pageIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }}
               className={`bg-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative rounded-[2px] overflow-hidden transition-all duration-500 shrink-0
                 ${activePageIndex === pageIndex ? 'scale-100 z-10' : 'scale-[0.98] opacity-80 blur-[1px]'}`}
               style={{ width: '210mm', height: '297mm' }}
             >
               {page.type === 'CARATULA' && <CaratulaPage page={page} pageIndex={pageIndex} updatePage={updatePage} isEditMode={true} uploadImage={uploadImage} campoMetadata={null} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
-              {page.type === 'UBICACION' && <UbicacionPage page={page} pageIndex={pageIndex} updatePage={updatePage} isEditMode={true} uploadImage={uploadImage} setIsEditingMap={setIsEditingMap} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
+              {page.type === 'UBICACION' && <UbicacionPage page={page} pageIndex={pageIndex} updatePage={updatePage} isEditMode={true} uploadImage={uploadImage} setIsEditingMap={setIsEditingMap} activeBlockIndex={activeBlockIndex} setActiveBlockIndex={setActiveBlockIndex} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
               {page.type === 'SITUACION_ACTUAL' && <SituacionActualPage page={page} pageIndex={pageIndex} updatePage={updatePage} isEditMode={true} uploadImage={uploadImage} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
               {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={pageIndex} updatePage={updatePage} isEditMode={true} uploadImage={uploadImage} activeBlockIndex={activeBlockIndex} setActiveBlockIndex={setActiveBlockIndex} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
               {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={pageIndex} updatePage={updatePage} updatePageSlice={updatePageSlice} addSlice={addSlice} uploadImage={uploadImage} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
