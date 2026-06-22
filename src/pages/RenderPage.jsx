@@ -13,6 +13,8 @@ export default function RenderPage() {
   const { informeId } = useParams();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const from = searchParams.get('from');
+  const to = searchParams.get('to');
 
   const [status, setStatus] = useState('validating');
   const [informe, setInforme] = useState(null);
@@ -68,10 +70,12 @@ export default function RenderPage() {
         return;
       }
 
-      await supabase
-        .from('pdf_tokens')
-        .update({ used: true })
-        .eq('id', tokenData.id);
+      if (from == null && to == null) {
+        await supabase
+          .from('pdf_tokens')
+          .update({ used: true })
+          .eq('id', tokenData.id);
+      }
 
       const { data: informeData, error: informeError } = await supabase
         .from('informes')
@@ -170,6 +174,9 @@ export default function RenderPage() {
   }
 
   const campoMetadata = informe?.campo;
+  const displayPages = (from != null && to != null)
+    ? pagesData.slice(Number(from), Number(to) + 1)
+    : pagesData;
 
   return (
     <div
@@ -190,10 +197,13 @@ export default function RenderPage() {
         .bloque, .seccion { break-inside: avoid; page-break-inside: avoid; }
         @page { size: A4; margin: 0; }
       `}</style>
-      {pagesData.map((page, pageIndex) => (
+      {displayPages.map((page, displayIndex) => {
+        const realIndex = (from != null && to != null) ? Number(from) + displayIndex : displayIndex;
+        return (
         <div
           key={page.id}
-          id={`page-${pageIndex}`}
+          id={`page-${realIndex}`}
+          data-page-index={realIndex}
           style={{
             width: '210mm',
             height: '297mm',
@@ -203,14 +213,15 @@ export default function RenderPage() {
             WebkitPrintColorAdjust: 'exact',
           }}
         >
-          {page.type === 'CARATULA' && <CaratulaPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} campoMetadata={campoMetadata} settings={settings} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
-          {page.type === 'UBICACION' && <UbicacionPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
-          {page.type === 'SITUACION_ACTUAL' && <SituacionActualPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
-          {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
-          {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
-          {page.type === 'TEXTO_FOTOS' && <TextoFotosPage page={page} pageIndex={pageIndex} isEditMode={false} isPDFRender={true} settings={settings} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
+          {page.type === 'CARATULA' && <CaratulaPage page={page} pageIndex={realIndex} isEditMode={false} isPDFRender={true} campoMetadata={campoMetadata} settings={settings} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
+          {page.type === 'UBICACION' && <UbicacionPage page={page} pageIndex={realIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'SITUACION_ACTUAL' && <SituacionActualPage page={page} pageIndex={realIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={realIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={realIndex} isEditMode={false} isPDFRender={true} settings={settings} />}
+          {page.type === 'TEXTO_FOTOS' && <TextoFotosPage page={page} pageIndex={realIndex} isEditMode={false} isPDFRender={true} settings={settings} acquireLock={()=>{}} releaseLock={()=>{}} isLockedByOther={()=>false} activeLocks={{}} />}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

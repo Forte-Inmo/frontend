@@ -37,7 +37,7 @@ const SMTP_FROM = process.env.SMTP_FROM || 'noreply@forteinmo.com';
 const APP_URL = process.env.APP_URL || 'https://app.forteinmo.com';
 
 const jobs = new Map();
-const JOB_TIMEOUT = 120 * 1000;
+const JOB_TIMEOUT = 300 * 1000;
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
 
 async function updatePdfExport(exportId, updates) {
@@ -102,6 +102,79 @@ async function sendEmail(recipientEmail, downloadUrl, informeTitle) {
   }
 }
 
+async function renderChunk(job, { from, to }) {
+  const chunkUrl = `${job.url}${job.url.includes('?') ? '&' : '?'}from=${from}&to=${to}`;
+
+  const browser = await puppeteer.launch({
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--font-render-hinting=none',
+      '--force-color-profile=srgb',
+      '--disable-lcd-text',
+      '--disable-gpu',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process',
+    ],
+    headless: true,
+  });
+
+  const page = await browser.newPage();
+  page.on('console', (msg) => {
+    const label = `[browser chunk ${from}-${to}] ${msg.text()}`;
+    const s = ((Date.now() - job.createdAt) / 1000).toFixed(1);
+    console.log(`[${s}s] ${label}`);
+    updateJob(job, { logs: [...job.logs, `[${s}s] ${label}`] });
+  });
+  page.on('pageerror', (err) => {
+    const label = `[browser error chunk ${from}-${to}] ${err.message}`;
+    const s = ((Date.now() - job.createdAt) / 1000).toFixed(1);
+    console.log(`[${s}s] ${label}`);
+    updateJob(job, { logs: [...job.logs, `[${s}s] ${label}`] });
+  });
+
+  await page.setViewport({ width: 794, height: 1123 });
+  await page.emulateMediaType('screen');
+
+  const tChunk = (label) => {
+    const s = ((Date.now() - job.createdAt) / 1000).toFixed(1);
+    const msg = `[${s}s] ${label}`;
+    console.log(msg);
+    updateJob(job, { logs: [...job.logs, msg] });
+  };
+
+  tChunk(`Navegando chunk ${from}-${to}...`);
+  await page.goto(chunkUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+  tChunk(`Chunk ${from}-${to} cargado, esperando fuentes...`);
+
+  await page.waitForFunction('document.fonts.ready', { timeout: 10000 });
+  tChunk(`Chunk ${from}-${to} fuentes listas, esperando render...`);
+
+  await page.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
+  tChunk(`Chunk ${from}-${to} render completo, generando PDF...`);
+
+  await page.waitForNetworkIdle({ idleTime: 500 });
+
+  const pdf = await Promise.race([
+    page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('PDF generation timeout (60s)')), 60000)
+    ),
+  ]);
+
+  await browser.close();
+
+  const tmpPath = path.join('/tmp', `chunk-${job.id}-${from}-${to}.pdf`);
+  fs.writeFileSync(tmpPath, pdf);
+  tChunk(`Chunk ${from}-${to} PDF generado (${(pdf.length / 1024).toFixed(0)} KB)`);
+  return tmpPath;
+}
+
 async function processJob(job) {
   const t = (label) => {
     const s = ((Date.now() - job.createdAt) / 1000).toFixed(1);
@@ -110,10 +183,16 @@ async function processJob(job) {
     updateJob(job, { logs: [...job.logs, msg] });
   };
 
-  updateJob(job, { stage: 'rendering', progress: 5 });
-  t('Iniciando renderizado...');
+  updateJob(job, { stage: 'counting', progress: 3 });
+  t('Iniciando renderizado paralelo...');
+
+  const CHUNK_SIZE = 7;
   let browser;
+  let pageCount = 0;
+
   try {
+    // Paso 1: Browser liviano solo para contar páginas
+    t('Lanzando browser para conteo de páginas...');
     browser = await puppeteer.launch({
       args: [
         '--no-sandbox',
@@ -129,82 +208,70 @@ async function processJob(job) {
       headless: true,
     });
 
-    const page = await browser.newPage();
-    page.on('console', (msg) => {
-      t(`[browser] ${msg.text()}`);
-    });
-    page.on('pageerror', (err) => {
-      t(`[browser error] ${err.message}`);
-    });
+    const countPage = await browser.newPage();
+    await countPage.setViewport({ width: 794, height: 1123 });
+    await countPage.emulateMediaType('screen');
+    t('Navegando para conteo...');
+    await countPage.goto(job.url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await countPage.waitForFunction('document.fonts.ready', { timeout: 10000 });
+    await countPage.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
+    await countPage.waitForNetworkIdle({ idleTime: 500 });
 
-    await page.setViewport({ width: 794, height: 1123 });
-    await page.emulateMediaType('screen');
+    pageCount = await countPage.evaluate(() =>
+      document.querySelectorAll('[data-page-index]').length
+    );
+    await browser.close();
+    browser = null;
+    t(`Total páginas detectadas: ${pageCount}`);
 
-    t('Navegando a la URL del informe...');
-    updateJob(job, { progress: 10 });
-    await page.goto(job.url, { waitUntil: 'networkidle2', timeout: 30000 });
-    updateJob(job, { progress: 30 });
-    t('Página cargada, esperando fuentes...');
-
-    await page.waitForFunction('document.fonts.ready', { timeout: 10000 });
-    updateJob(job, { progress: 40 });
-    t('Fuentes listas, esperando render completo...');
-
-    await page.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
-    updateJob(job, { progress: 45 });
-    t('Render completo, generando PDF...');
-
-    await page.waitForNetworkIdle({ idleTime: 500 });
-
-    const domInfo = await page.evaluate(() => ({
-      totalImages: document.querySelectorAll('img').length,
-      totalSVGs: document.querySelectorAll('svg').length,
-      svgViewBoxes: [...document.querySelectorAll('svg')].map(s => s.getAttribute('viewBox')),
-      bodyScrollHeight: document.body.scrollHeight,
-      renderRoot: document.getElementById('render-root')?.scrollHeight,
-    }));
-    console.log('DOM INFO:', JSON.stringify(domInfo));
-
-    const pdf = await Promise.race([
-      page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('PDF generation timeout (60s)')), 60000)
-      ),
-    ]);
-    updateJob(job, { progress: 70 });
-    t(`PDF generado (${(pdf.length / 1024).toFixed(0)} KB)`);
-
-    updateJob(job, { stage: 'cmyk', progress: 80 });
-    t('Convirtiendo a CMYK con Ghostscript...');
-    const tmpInput = path.join('/tmp', `pdf-input-${Date.now()}.pdf`);
-    const tmpOutput = path.join('/tmp', `pdf-output-${Date.now()}.pdf`);
-    fs.writeFileSync(tmpInput, pdf);
-
-    let finalPdf;
-    try {
-      execSync(
-        `gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
-        `-sProcessColorModel=DeviceCMYK ` +
-        `-sColorConversionStrategy=CMYK ` +
-        `-sColorConversionStrategyForImages=CMYK ` +
-        `-dOverrideICC -o ${tmpOutput} ${tmpInput}`,
-        { timeout: 120000 }
-      );
-      finalPdf = fs.readFileSync(tmpOutput);
-      updateJob(job, { progress: 90 });
-      t('Conversión CMYK completada');
-    } catch (gsErr) {
-      t(`CMYK falló, usando RGB: ${gsErr.message}`);
-      finalPdf = Buffer.from(pdf);
-    } finally {
-      try { fs.unlinkSync(tmpInput); } catch (_) {}
-      try { fs.unlinkSync(tmpOutput); } catch (_) {}
+    if (pageCount === 0) {
+      updateJob(job, { stage: 'error', error: 'No se encontraron páginas en el informe' });
+      return;
     }
 
+    updateJob(job, { stage: 'rendering', progress: 5 });
+
+    // Paso 2: Dividir en chunks
+    const chunks = [];
+    for (let i = 0; i < pageCount; i += CHUNK_SIZE) {
+      chunks.push({ from: i, to: Math.min(i + CHUNK_SIZE - 1, pageCount - 1) });
+    }
+    t(`Dividido en ${chunks.length} chunks de hasta ${CHUNK_SIZE} páginas cada uno: ${chunks.map(c => `${c.from}-${c.to}`).join(', ')}`);
+
+    // Paso 3: Lanzar todos los chunks en paralelo
+    const chunkPaths = await Promise.all(chunks.map((chunk, idx) =>
+      (async () => {
+        const tmpPath = await renderChunk(job, chunk);
+        const progress = 10 + ((idx + 1) / chunks.length) * 75;
+        updateJob(job, { progress: Math.round(progress) });
+        return tmpPath;
+      })()
+    ));
+    t('Todos los chunks generados, mergeando con Ghostscript...');
+    updateJob(job, { stage: 'merging', progress: 88 });
+
+    // Paso 4: Mergear todos los chunks con Ghostscript + CMYK
+    const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
+    execSync(
+      `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
+      `-sProcessColorModel=DeviceCMYK ` +
+      `-sColorConversionStrategy=CMYK ` +
+      `-sColorConversionStrategyForImages=CMYK ` +
+      `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
+      { timeout: 300000 }
+    );
+
+    const finalPdf = fs.readFileSync(mergedPath);
+    updateJob(job, { progress: 92 });
+    t(`PDF mergeado (${(finalPdf.length / 1024).toFixed(0)} KB)`);
+
+    // Limpiar archivos temporales de chunks
+    for (const cp of chunkPaths) {
+      try { fs.unlinkSync(cp); } catch (_) {}
+    }
+    try { fs.unlinkSync(mergedPath); } catch (_) {}
+
+    // Paso 5: Subir a Storage
     t('Subiendo PDF a Storage...');
     updateJob(job, { progress: 95 });
 
@@ -241,8 +308,8 @@ async function processJob(job) {
     }
   } catch (err) {
     try {
-      const page = await browser?.newPage?.();
-      if (page) {
+      if (browser) {
+        const page = await browser.newPage();
         await page.screenshot({ path: '/tmp/pdf-error.png', fullPage: true });
         t('Screenshot guardado en /tmp/pdf-error.png');
       }
