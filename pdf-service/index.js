@@ -156,6 +156,15 @@ async function processJob(job) {
 
     await page.waitForNetworkIdle({ idleTime: 500 });
 
+    const domInfo = await page.evaluate(() => ({
+      totalImages: document.querySelectorAll('img').length,
+      totalSVGs: document.querySelectorAll('svg').length,
+      svgViewBoxes: [...document.querySelectorAll('svg')].map(s => s.getAttribute('viewBox')),
+      bodyScrollHeight: document.body.scrollHeight,
+      renderRoot: document.getElementById('render-root')?.scrollHeight,
+    }));
+    console.log('DOM INFO:', JSON.stringify(domInfo));
+
     const pdf = await Promise.race([
       page.pdf({
         format: 'A4',
