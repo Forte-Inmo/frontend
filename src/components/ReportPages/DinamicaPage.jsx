@@ -60,6 +60,19 @@ export default function DinamicaPage({
     dark: '#001a4d'
   };
   const [dragState, setDragState] = useState({ isDragging: false, startY: 0, startOffset: 0, blockIdx: null });
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const addMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showAddMenu) return;
+    const handleClick = (e) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target)) {
+        setShowAddMenu(false);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', handleClick), 0);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showAddMenu]);
   const blocks = page.blocks || [];
 
   const handleMouseDown = (e, idx, initialOffset) => {
@@ -119,7 +132,6 @@ export default function DinamicaPage({
 
   const addBlock = (type = 'text') => {
     const newBlocks = [...(page.blocks || [])];
-    const newIndex = newBlocks.length;
     const base = {
       id: crypto.randomUUID(),
       type,
@@ -127,13 +139,13 @@ export default function DinamicaPage({
       bgColor: '#ffffff',
       textColor: '#003399'
     };
+    const newBlock = { ...base, isNew: true };
     if (type === 'title') {
-      newBlocks.push({ ...base, title: 'TÍTULO', bgColor: brandColors.primary, textColor: '#ffffff' });
+      Object.assign(newBlock, { title: 'TÍTULO', bgColor: brandColors.primary, textColor: '#ffffff' });
     } else if (type === 'image') {
-      newBlocks.push({ ...base, title: 'Nuevo Mapa / Gráfico', url: '' });
+      Object.assign(newBlock, { title: 'Nuevo Mapa / Gráfico', url: '' });
     } else if (type === 'table') {
-      newBlocks.push({
-        ...base,
+      Object.assign(newBlock, {
         title: 'TABLA DE DATOS',
         tableData: {
           columns: [
@@ -151,10 +163,11 @@ export default function DinamicaPage({
         },
       });
     } else {
-      newBlocks.push({ ...base, text: 'Nuevo bloque de información...' });
+      Object.assign(newBlock, { text: 'Nuevo bloque de información...' });
     }
+    newBlocks.push(newBlock);
     updatePage(pageIndex, 'blocks', newBlocks);
-    if (isEditMode) setActiveBlockIndex(newIndex);
+    if (isEditMode) setActiveBlockIndex(newBlocks.length - 1);
   };
 
   const getTextSize = (s) => {
@@ -174,14 +187,6 @@ export default function DinamicaPage({
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-800 via-gray-900 to-black" />
         )}
-        {isEditMode && (
-          <div data-no-print="true" className="absolute top-8 right-8 z-20">
-            <label className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2">
-              <Camera className="w-5 h-5" />
-              <input type="file" className="hidden" onChange={(e) => uploadImage(e, pageIndex, 'fondo_url')} accept="image/*" />
-            </label>
-          </div>
-        )}
       </div>
 
       {/* Content Layer */}
@@ -189,7 +194,7 @@ export default function DinamicaPage({
         
         {/* Content Area */}
         <div className="absolute inset-0 flex flex-col p-[15mm] pb-[140px]" style={{ overflow: 'clip' }}>
-          <div className="flex flex-col gap-6 w-[94%] mx-auto mt-4" style={{ flex: blocks.some(b => b.imageScale === 'full') ? '1 1 0' : '0 0 auto' }}>
+          <div className="flex flex-col gap-6 w-[94%] mx-auto mt-4 relative" style={{ flex: blocks.some(b => b.imageScale === 'full') ? '1 1 0' : '0 0 auto' }}>
             {blocks.map((block, idx) => (
               <div 
                 key={block.id || idx} 
@@ -199,7 +204,7 @@ export default function DinamicaPage({
                     setActiveBlockIndex(idx);
                   }
                 }}
-                className={`relative group transition-all ${dragState.isDragging && dragState.blockIdx === idx ? 'duration-0 z-50' : 'duration-500'} cursor-pointer
+                className={`${block.isNew ? 'absolute' : 'relative'} group transition-all ${dragState.isDragging && dragState.blockIdx === idx ? 'duration-0 z-50' : 'duration-500'} cursor-pointer
                      ${isEditMode && activeBlockIndex === idx ? 'ring-8 ring-emerald-500 ring-offset-8 ring-offset-transparent' : ''}`}
                 onMouseDown={(e) => handleMouseDown(e, idx, block.yOffset)}
                 style={(() => { 
@@ -231,6 +236,12 @@ export default function DinamicaPage({
                     flexGrow: block.imageScale === 'full' ? 1 : 0,
                     minHeight: block.imageScale === 'full' ? '200px' : 'auto',
                   };
+                  if (block.isNew) {
+                    s.top = 0;
+                    s.left = 0;
+                    s.right = 0;
+                    s.zIndex = 9999;
+                  }
                   return isPDFRender ? convertShadowForPDF(s) : s;
                 })()}
               >
@@ -522,60 +533,77 @@ export default function DinamicaPage({
               )}
             </div>
           ))}
-
-          {isEditMode && (
-            <div data-no-print="true" className="flex gap-4 mt-4 mb-8">
-               <button 
-                onClick={() => addBlock('title')}
-                className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
-               >
-                 <Type className="w-6 h-6 group-hover:scale-125 transition-transform" /> Título
-               </button>
-               <button 
-                onClick={() => addBlock('text')}
-                className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
-               >
-                 <Palette className="w-6 h-6 group-hover:scale-125 transition-transform" /> Bloque
-               </button>
-               <button 
-                 onClick={() => addBlock('image')}
-                 className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
-                >
-                  <ImageIcon className="w-6 h-6 group-hover:scale-125 transition-transform" /> Imagen
-                </button>
-               <button 
-                 onClick={() => addBlock('table')}
-                 className="flex-1 py-6 border-4 border-dashed border-white/20 rounded-[2.5rem] text-white/40 font-black uppercase tracking-widest hover:border-white/60 hover:text-white hover:bg-white/5 transition-all flex items-center justify-center gap-4 group"
-                >
-                  <TableIcon className="w-6 h-6 group-hover:scale-125 transition-transform" /> Tabla
-                </button>
-             </div>
-          )}
         </div>
       </div>
+
+      {isEditMode && (
+        <div data-no-print="true" className="absolute top-8 right-8 z-20">
+          <div className="relative" ref={addMenuRef}>
+            <button
+              onClick={() => setShowAddMenu(!showAddMenu)}
+              className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            {showAddMenu && (
+              <div className="absolute top-full right-0 mt-2 bg-gray-900 border border-white/10 rounded-2xl shadow-xl p-2 z-40 min-w-[170px]">
+                <button
+                  onClick={() => { addBlock('title'); setShowAddMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <Type className="w-4 h-4" /> Título
+                </button>
+                <button
+                  onClick={() => { addBlock('text'); setShowAddMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <Palette className="w-4 h-4" /> Bloque
+                </button>
+                <button
+                  onClick={() => { addBlock('image'); setShowAddMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <ImageIcon className="w-4 h-4" /> Imagen
+                </button>
+                <button
+                  onClick={() => { addBlock('table'); setShowAddMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <TableIcon className="w-4 h-4" /> Tabla
+                </button>
+                <div className="h-px bg-white/10 my-1" />
+                <label className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer">
+                  <Camera className="w-4 h-4" /> Cambiar Fondo
+                  <input type="file" className="hidden" onChange={(e) => { uploadImage(e, pageIndex, 'fondo_url'); setShowAddMenu(false); }} accept="image/*" />
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
         {/* Footer Branding */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-between items-end border-t border-white/20 pt-5 pb-4 px-[15mm] z-20 bg-gray-900">
            <div className="flex flex-col gap-1 text-white opacity-90">
               <div className="flex gap-4 text-[10px] font-black">
                  <span className="uppercase tracking-widest">SANTA ROSA <span className="text-[#ccff00]">REAL INMOBILIARIA</span></span>
-                 <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2954-311804</span></span>
+                  <span className="uppercase tracking-widest text-white">TEL 2954-311804</span>
               </div>
               <div className="flex gap-4 text-[10px] font-black">
                  <span className="uppercase tracking-widest">GENERAL PICO <span className="text-[#ccff00]">FORTE INMOBILIARIA</span></span>
-                 <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2302-410798</span></span>
+                  <span className="uppercase tracking-widest text-white">TEL 2302-410798</span>
               </div>
-              <div className="text-[10px] font-black text-[#ccff00] tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
+               <div className="text-[10px] font-black text-white tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
            </div>
 
            <div className="flex items-center gap-8">
               {settings?.org1_logo_url ? (
-                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-14 w-auto object-contain" />
-              ) : (
-                <span className="text-[20px] font-black text-white tracking-widest uppercase">Forte</span>
-              )}
-              {settings?.org2_logo_url ? (
-                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
+                 <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-16 w-auto object-contain" />
+               ) : (
+                 <span className="text-[22px] font-black text-white tracking-widest uppercase">Forte</span>
+               )}
+               {settings?.org2_logo_url ? (
+                 <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-16 w-auto object-contain" />
               ) : (
                 <span className="text-[20px] font-black text-white tracking-widest uppercase">Real</span>
               )}

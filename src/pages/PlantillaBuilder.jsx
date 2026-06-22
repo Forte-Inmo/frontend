@@ -127,9 +127,22 @@ export default function PlantillaBuilder() {
     if (isNew) {
       createNewPlantilla();
     }
-  }, [isNew]);
+    }, [isNew]);
 
-  if (isNew || loading) {
+  const activePage = pagesData[activePageIndex];
+
+  // Auto-migrate legacy UbicacionPage (title+description) to blocks
+  useEffect(() => {
+    if (activePage?.type === 'UBICACION' && !activePage.blocks && activePage.titulo) {
+      const newBlocks = [
+        { id: crypto.randomUUID(), type: 'title', title: activePage.titulo || 'UBICACIÓN Y DISTRIBUCIÓN', yOffset: 0, textColor: '#ffffff', titleSize: 'md' },
+        { id: crypto.randomUUID(), type: 'text', text: activePage.descripcion || '', xOffset: 15, yOffset: 80, textColor: '#ffffff', textSize: 'md', bgColor: '#107549', variant: 'standard', width: 'half', align: 'left' },
+      ];
+      updatePage(activePageIndex, 'blocks', newBlocks);
+    }
+  }, [activePage?.type, activePage?.id, activePageIndex, updatePage]);
+
+    if (isNew || loading) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
@@ -138,8 +151,6 @@ export default function PlantillaBuilder() {
   }
 
   if (loading) return <div className="p-10 text-center flex h-screen items-center justify-center text-emerald-800 font-bold text-xl">Cargando Plantilla...</div>;
-
-  const activePage = pagesData[activePageIndex];
 
   function ThumbnailPreview({ page, pageIndex }) {
     const containerRef = useRef(null);
@@ -857,53 +868,54 @@ export default function PlantillaBuilder() {
 
                   <div className="h-px bg-gray-100"></div>
 
-                  {activePage.blocks[activeBlockIndex].type !== 'title' && (
-                    <>
-                      <div className="flex items-center justify-between bg-gray-50 p-5 rounded-3xl">
-                        <div>
-                          <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest block">Mostrar Título</span>
-                          <span className="text-[8px] font-bold text-gray-400 uppercase">Encabezado del bloque</span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const newBlocks = [...activePage.blocks];
-                            newBlocks[activeBlockIndex].hideTitle = !newBlocks[activeBlockIndex].hideTitle;
-                            updatePage(activePageIndex, 'blocks', newBlocks);
-                          }}
-                          className={`w-14 h-7 rounded-full transition-all relative ${!activePage.blocks[activeBlockIndex].hideTitle ? 'bg-emerald-500' : 'bg-gray-200'}`}
-                        >
-                           <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${!activePage.blocks[activeBlockIndex].hideTitle ? 'right-1' : 'left-1'}`} />
-                        </button>
-                       </div>
+                  {activePage.blocks[activeBlockIndex].type !== 'title' && activePage?.type !== 'UBICACION' && (
+                    <div className="flex items-center justify-between bg-gray-50 p-5 rounded-3xl">
+                      <div>
+                        <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest block">Mostrar Título</span>
+                        <span className="text-[8px] font-bold text-gray-400 uppercase">Encabezado del bloque</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newBlocks = [...activePage.blocks];
+                          newBlocks[activeBlockIndex].hideTitle = !newBlocks[activeBlockIndex].hideTitle;
+                          updatePage(activePageIndex, 'blocks', newBlocks);
+                        }}
+                        className={`w-14 h-7 rounded-full transition-all relative ${!activePage.blocks[activeBlockIndex].hideTitle ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                      >
+                         <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${!activePage.blocks[activeBlockIndex].hideTitle ? 'right-1' : 'left-1'}`} />
+                      </button>
+                     </div>
+                   )}
 
-                       {!activePage.blocks[activeBlockIndex].hideTitle && (
-                         <div className="space-y-3">
-                           <FieldLabel>Tamaño Título</FieldLabel>
-                           <div className="bg-gray-50 p-4 rounded-3xl">
-                             <input
-                               type="range"
-                               min="16"
-                               max="80"
-                               step="1"
-                               value={typeof activePage.blocks[activeBlockIndex]?.titleSize === 'number' ? activePage.blocks[activeBlockIndex].titleSize : 58}
-                               onChange={(e) => {
-                                 const val = parseInt(e.target.value);
-                                 const newBlocks = [...activePage.blocks];
-                                 newBlocks[activeBlockIndex].titleSize = val;
-                                 updatePage(activePageIndex, 'blocks', newBlocks);
-                               }}
-                               className="w-full accent-emerald-600"
-                             />
-                             <div className="flex justify-between items-center mt-2">
-                               <span className="text-[10px] font-bold text-gray-400">16px</span>
-                               <span className="text-xs font-bold text-emerald-600">
-                                 {typeof activePage.blocks[activeBlockIndex]?.titleSize === 'number' ? activePage.blocks[activeBlockIndex].titleSize : 58}px
-                               </span>
-                               <span className="text-[10px] font-bold text-gray-400">80px</span>
-                             </div>
-                           </div>
+                  {((activePage.blocks[activeBlockIndex].type !== 'title' && !activePage.blocks[activeBlockIndex].hideTitle && activePage?.type !== 'UBICACION')
+                    || (activePage.blocks[activeBlockIndex].type === 'title' && activePage?.type === 'UBICACION')) && (
+                     <div className="space-y-3">
+                       <FieldLabel>Tamaño Título</FieldLabel>
+                       <div className="bg-gray-50 p-4 rounded-3xl">
+                         <input
+                           type="range"
+                           min="16"
+                           max="80"
+                           step="1"
+                           value={typeof activePage.blocks[activeBlockIndex]?.titleSize === 'number' ? activePage.blocks[activeBlockIndex].titleSize : 58}
+                           onChange={(e) => {
+                             const val = parseInt(e.target.value);
+                             const newBlocks = [...activePage.blocks];
+                             newBlocks[activeBlockIndex].titleSize = val;
+                             updatePage(activePageIndex, 'blocks', newBlocks);
+                           }}
+                           className="w-full accent-emerald-600"
+                         />
+                         <div className="flex justify-between items-center mt-2">
+                           <span className="text-[10px] font-bold text-gray-400">16px</span>
+                           <span className="text-xs font-bold text-emerald-600">
+                             {typeof activePage.blocks[activeBlockIndex]?.titleSize === 'number' ? activePage.blocks[activeBlockIndex].titleSize : 58}px
+                           </span>
+                           <span className="text-[10px] font-bold text-gray-400">80px</span>
                          </div>
-                       )}
+                       </div>
+                     </div>
+                   )}
 
                        <div className="space-y-4">
                          <FieldLabel>Formato de Texto</FieldLabel>
@@ -971,10 +983,8 @@ export default function PlantillaBuilder() {
                            </div>
                          </div>
                        )}
-                     </>
-                   )}
-
-                   <div className="h-px bg-gray-100"></div>
+ 
+                    <div className="h-px bg-gray-100"></div>
 
                   <div className="space-y-4">
                     <FieldLabel>Imagen de Fondo de Página</FieldLabel>
@@ -1054,6 +1064,95 @@ export default function PlantillaBuilder() {
                       </label>
                     )}
                   </div>
+
+                  {activePage.type === 'CARATULA' && (
+                    <div className="space-y-6">
+                      <div className="h-px bg-gray-100"></div>
+                      <div className="space-y-4">
+                        <FieldLabel>Color del Degradado</FieldLabel>
+                        <div className="bg-gray-50 p-4 rounded-3xl relative">
+                          <button
+                            onClick={() => setActiveColorPicker(activeColorPicker === 'overlay' ? null : 'overlay')}
+                            className="w-16 h-16 rounded-xl border-2 border-gray-200 overflow-hidden transition-transform active:scale-90"
+                            style={{ backgroundColor: activePage.overlay_color || '#8cc63f' }}
+                          />
+                          {activeColorPicker === 'overlay' && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
+                              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                  {Object.entries(brandColors).map(([key, color]) => (
+                                    <button
+                                      key={key}
+                                      onClick={() => {
+                                        updatePage(activePageIndex, 'overlay_color', color);
+                                        setActiveColorPicker(null);
+                                      }}
+                                      className="w-full aspect-square rounded-xl border border-gray-100 relative flex items-center justify-center transition-transform active:scale-90"
+                                      style={{ backgroundColor: color }}
+                                    >
+                                      {(activePage.overlay_color || '#8cc63f') === color && <Check className="w-4 h-4 text-white mix-blend-difference" />}
+                                    </button>
+                                  ))}
+                                </div>
+                                <div className="relative flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50">
+                                  <Palette className="w-4 h-4 text-gray-400" />
+                                  <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                  <div className="ml-auto w-6 h-6 rounded-lg border border-gray-200 pointer-events-none" style={{ backgroundColor: activePage.overlay_color || '#8cc63f' }} />
+                                  <input
+                                    type="color"
+                                    value={activePage.overlay_color || '#8cc63f'}
+                                    onChange={(e) => {
+                                      updatePage(activePageIndex, 'overlay_color', e.target.value);
+                                      setActiveColorPicker(null);
+                                    }}
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                  />
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <FieldLabel>Opacidad del Degradado</FieldLabel>
+                        <div className="bg-gray-50 p-4 rounded-3xl">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={activePage.overlay_opacidad ?? 85}
+                            onChange={(e) => updatePage(activePageIndex, 'overlay_opacidad', Number(e.target.value))}
+                            className="w-full accent-emerald-500 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2">
+                            <span>0%</span>
+                            <span>{activePage.overlay_opacidad ?? 85}%</span>
+                            <span>100%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="h-px bg-gray-100"></div>
+                      <div className="space-y-4">
+                        <FieldLabel>Tamaño de Logos</FieldLabel>
+                        <div className="bg-gray-50 p-4 rounded-3xl">
+                          <input
+                            type="range"
+                            min="50"
+                            max="200"
+                            value={activePage.logos_scale ?? 100}
+                            onChange={(e) => updatePage(activePageIndex, 'logos_scale', Number(e.target.value))}
+                            className="w-full accent-emerald-500 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2">
+                            <span>50%</span>
+                            <span>{activePage.logos_scale ?? 100}%</span>
+                            <span>200%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

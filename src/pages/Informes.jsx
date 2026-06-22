@@ -173,7 +173,11 @@ export default function Informes() {
         id: crypto.randomUUID(),
         type: 'CARATULA',
         titulo: 'CAMPO EN VENTA',
-        portada_url: ''
+        portada_url: '',
+        overlay_opacidad: 85,
+        overlay_color: '#8cc63f',
+        logos_scale: 100,
+        logos_offset: 0
       };
 
       const pages_data = [caratula, ...templatePages];

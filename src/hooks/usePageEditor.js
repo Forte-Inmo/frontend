@@ -131,8 +131,8 @@ export function usePageEditor({ id, saveFn }) {
       defaultData = {
         lat: -34.6037, lng: -58.3816, zoom: 12,
         blocks: [
-          { id: crypto.randomUUID(), type: 'title', title: 'UBICACIÓN Y DISTRIBUCIÓN', yOffset: 0, textColor: '#ffffff', titleSize: 'md' },
-          { id: crypto.randomUUID(), type: 'text', text: 'Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo, Provincia de La Pampa.', xOffset: 15, yOffset: 80, textColor: '#ffffff', textSize: 'md' },
+          { id: crypto.randomUUID(), type: 'title', title: 'UBICACIÓN Y DISTRIBUCIÓN', yOffset: 0, textColor: '#ffffff', titleSize: 'md', bgColor: '#107549', variant: 'standard', width: 'full', align: 'left' },
+          { id: crypto.randomUUID(), type: 'text', text: 'Establecimiento agropecuario de 5000 hectáreas. Ubicado en el departamento Conhelo, Provincia de La Pampa.', xOffset: 15, yOffset: 80, textColor: '#ffffff', textSize: 'md', bgColor: '#107549', variant: 'standard', width: 'half', align: 'left' },
         ]
       };
     } else if (type === 'DINAMICA') {

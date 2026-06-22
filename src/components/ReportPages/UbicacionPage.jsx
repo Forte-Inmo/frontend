@@ -180,7 +180,7 @@ export default function UbicacionPage({
                       position: 'absolute',
                       left: `${block.xOffset || 15}mm`,
                       top: `${block.yOffset || 80}mm`,
-                      width: '55%',
+                      width: !block.width || block.width === 'full' ? '55%' : block.width === 'half' ? '45%' : block.width === 'quarter' ? '25%' : `${block.width}%`,
                     }}
                   >
                     {isEditMode && (
@@ -194,6 +194,15 @@ export default function UbicacionPage({
                         <GripVertical className="w-5 h-5" />
                       </div>
                     )}
+                    <div
+                      style={{
+                        backgroundColor: block.variant === 'transparent' ? 'transparent' : (block.variant === 'fade-top' ? 'transparent' : (block.bgColor || 'transparent')),
+                        backgroundImage: block.variant === 'fade-top' ? `linear-gradient(to bottom, ${block.bgColor || '#107549'} 50%, transparent ${block.fadeStop ?? 85}%)` : 'none',
+                        borderRadius: (block.variant === 'fade-top' || block.variant === 'transparent') ? '0' : '2rem',
+                        padding: block.variant === 'transparent' ? '0' : block.variant === 'fade-top' ? '20px 28px 40px' : '20px 28px',
+                        boxShadow: (block.variant === 'fade-top' || block.variant === 'transparent') ? 'none' : '0 15px 45px rgba(0,0,0,0.12)',
+                      }}
+                    >
                     <RichTextEditor
                       content={block.text || ''}
                       onChange={(html) => updateBlock(realIdx, 'text', html)}
@@ -205,6 +214,7 @@ export default function UbicacionPage({
                         color: block.textColor || '#ffffff'
                       }}
                     />
+                    </div>
                   </div>
                 );
               })}
@@ -283,19 +293,19 @@ export default function UbicacionPage({
            <div className="flex flex-col gap-1 text-white opacity-90">
               <div className="flex gap-4 text-[11px] font-black">
                  <span className="uppercase tracking-widest">SANTA ROSA <span className="text-[#ccff00]">REAL INMOBILIARIA</span></span>
-                 <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2954-311804</span></span>
+                  <span className="uppercase tracking-widest text-white">TEL 2954-311804</span>
               </div>
               <div className="flex gap-4 text-[11px] font-black">
                  <span className="uppercase tracking-widest">GENERAL PICO <span className="text-[#ccff00]">FORTE INMOBILIARIA</span></span>
-                 <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2302-410798</span></span>
+                  <span className="uppercase tracking-widest text-white">TEL 2302-410798</span>
               </div>
-              <div className="text-[11px] font-black text-[#ccff00] tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
+               <div className="text-[11px] font-black text-white tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
            </div>
 
            <div className="flex items-center gap-10">
               {settings?.org1_logo_url ? (
                 <div className="flex flex-col items-center gap-1">
-                  <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-14 w-auto object-contain" />
+                   <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-16 w-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1">
@@ -309,7 +319,7 @@ export default function UbicacionPage({
               )}
               {settings?.org2_logo_url ? (
                 <div className="flex items-center gap-3">
-                  <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
+                   <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-16 w-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex items-center gap-3">

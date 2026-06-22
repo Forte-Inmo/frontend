@@ -85,25 +85,25 @@ export default function TextoFotosPage({
            <div className={`flex flex-col gap-1 ${page.fondo_url ? 'text-white' : 'opacity-30 grayscale text-black'}`}>
               <div className={`flex gap-3 ${page.fondo_url ? 'text-[10px]' : 'text-[9px]'} font-black uppercase tracking-widest`}>
                  <span>SANTA ROSA <span className="text-[#ccff00]">REAL INMOBILIARIA</span></span>
-                 <span className="opacity-60">TEL <span className="text-white">2954-311804</span></span>
+                  <span className="opacity-80">TEL 2954-311804</span>
               </div>
               <div className={`flex gap-3 ${page.fondo_url ? 'text-[10px]' : 'text-[9px]'} font-black uppercase tracking-widest`}>
                  <span>GENERAL PICO <span className="text-[#ccff00]">FORTE INMOBILIARIA</span></span>
-                 <span className="opacity-60">TEL <span className="text-white">2302-410798</span></span>
+                  <span className="opacity-80">TEL 2302-410798</span>
               </div>
-              <div className={`${page.fondo_url ? 'text-[10px]' : 'text-[9px]'} font-black text-[#ccff00] tracking-widest uppercase`}>www.forteinmobiliaria.com.ar</div>
+               <div className={`${page.fondo_url ? 'text-[10px]' : 'text-[9px]'} font-black text-white tracking-widest uppercase`}>www.forteinmobiliaria.com.ar</div>
            </div>
            <div className="flex items-center gap-6">
               {settings?.org1_logo_url ? (
-                <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-14 w-auto object-contain" />
-              ) : (
-                <div className="flex items-center gap-2">
-                   <div className={`w-5 h-5 border-2 transform rotate-45 ${page.fondo_url ? 'border-white' : 'border-black'}`}></div>
-                   <span className="font-black text-sm tracking-tighter">FORTE</span>
-                </div>
-              )}
-              {settings?.org2_logo_url ? (
-                <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
+                 <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-16 w-auto object-contain" />
+               ) : (
+                 <div className="flex items-center gap-2">
+                    <div className={`w-5 h-5 border-2 transform rotate-45 ${page.fondo_url ? 'border-white' : 'border-black'}`}></div>
+                    <span className="font-black text-sm tracking-tighter">FORTE</span>
+                 </div>
+               )}
+               {settings?.org2_logo_url ? (
+                 <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-16 w-auto object-contain" />
               ) : (
                 <span className="font-black text-sm tracking-tighter">REAL</span>
               )}

@@ -42,14 +42,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 28,
   },
-  leafIcon: {
-    width: 36,
-    height: 36,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16,
-    padding: 10,
-    marginBottom: 16,
-  },
   title: {
     fontSize: 52,
     fontFamily: 'Inter',
@@ -135,13 +127,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   logoName: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 900,
     color: COLORS.white,
     letterSpacing: 1,
   },
   logoSub: {
-    fontSize: 5,
+    fontSize: 7,
     fontWeight: 900,
     color: 'rgba(255,255,255,0.7)',
     letterSpacing: 4,
@@ -160,13 +152,14 @@ function getSubtitulo(page, campoMetadata) {
 export default function CaratulaPDF({ page, pageIndex, campoMetadata, brandColors }) {
   const logoDiamond = '◆';
   const logoBars = '≡';
+  const ls = (page.logos_scale ?? 100) / 100;
 
   return (
     <Page size="A4" orientation="portrait" style={styles.container}>
       {page.portada_url && (
         <Image src={page.portada_url} style={styles.bgImage} />
       )}
-      <View style={styles.gradientOverlay} />
+      <View style={[styles.gradientOverlay, { backgroundColor: page.overlay_color || COLORS.green, opacity: (page.overlay_opacidad ?? 85) / 100 }]} />
       <View style={styles.content}>
         <View style={styles.topSection}>
           <Text style={styles.title}>{(page.titulo || 'CAMPO EN VENTA').toUpperCase()}</Text>
@@ -190,14 +183,14 @@ export default function CaratulaPDF({ page, pageIndex, campoMetadata, brandColor
             </Text>
           </View>
 
-          <View style={styles.logosRow}>
+          <View style={[styles.logosRow, { paddingTop: 24 + Math.round((page.logos_offset ?? 0) * 2.83) }]}>
             <View style={styles.logoGroup}>
-              <Text style={styles.logoName}>{logoDiamond} FORTE</Text>
-              <Text style={styles.logoSub}>INMOBILIARIA</Text>
+              <Text style={[styles.logoName, { fontSize: 20 * ls }]}>{logoDiamond} FORTE</Text>
+              <Text style={[styles.logoSub, { fontSize: 7 * ls }]}>INMOBILIARIA</Text>
             </View>
             <View style={styles.logoGroup}>
-              <Text style={styles.logoName}>{logoBars} REAL</Text>
-              <Text style={styles.logoSub}>INMOBILIARIA</Text>
+              <Text style={[styles.logoName, { fontSize: 20 * ls }]}>{logoBars} REAL</Text>
+              <Text style={[styles.logoSub, { fontSize: 7 * ls }]}>INMOBILIARIA</Text>
             </View>
           </View>
         </View>

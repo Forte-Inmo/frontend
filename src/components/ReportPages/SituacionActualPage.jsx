@@ -109,19 +109,19 @@ export default function SituacionActualPage({
            <div className="flex flex-col gap-1 text-white opacity-90">
               <div className="flex gap-4 text-[11px] font-black">
                  <span className="uppercase tracking-widest">SANTA ROSA <span className="text-[#ccff00]">REAL INMOBILIARIA</span></span>
-                 <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2954-311804</span></span>
+                  <span className="uppercase tracking-widest text-white">TEL 2954-311804</span>
               </div>
               <div className="flex gap-4 text-[11px] font-black">
                  <span className="uppercase tracking-widest">GENERAL PICO <span className="text-[#ccff00]">FORTE INMOBILIARIA</span></span>
-                 <span className="uppercase tracking-widest opacity-60">TEL <span className="text-white">2302-410798</span></span>
+                  <span className="uppercase tracking-widest text-white">TEL 2302-410798</span>
               </div>
-              <div className="text-[11px] font-black text-[#ccff00] tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
+               <div className="text-[11px] font-black text-white tracking-widest mt-1 uppercase">www.forteinmobiliaria.com.ar</div>
            </div>
 
            <div className="flex items-center gap-10">
               {settings?.org1_logo_url ? (
                 <div className="flex flex-col items-center gap-1">
-                  <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-14 w-auto object-contain" />
+                   <img src={settings.org1_logo_url} alt={settings.org1_name || 'Logo'} className="h-16 w-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1">
@@ -135,7 +135,7 @@ export default function SituacionActualPage({
               )}
               {settings?.org2_logo_url ? (
                 <div className="flex items-center gap-3">
-                  <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-14 w-auto object-contain" />
+                   <img src={settings.org2_logo_url} alt={settings.org2_name || 'Logo'} className="h-16 w-auto object-contain" />
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
