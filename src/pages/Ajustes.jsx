@@ -107,14 +107,15 @@ export default function Ajustes() {
   const [uploading, setUploading] = useState(false);
   const [savedOk, setSavedOk] = useState(false);
   const [plantillas, setPlantillas] = useState([]);
+  const [informes, setInformes] = useState([]);
+  const [selectedInformeId, setSelectedInformeId] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertMessage, setConvertMessage] = useState(null);
 
   useEffect(() => {
     if (settings) setFormData(settings);
   }, [settings]);
-
-  useEffect(() => {
-    fetchPlantillas();
-  }, []);
 
   const fetchPlantillas = async () => {
     try {
@@ -128,6 +129,23 @@ export default function Ajustes() {
     }
   };
 
+  const fetchInformes = async () => {
+    try {
+      const { data } = await supabase
+        .from('informes')
+        .select('*, campos(*)')
+        .order('created_at', { ascending: false });
+      setInformes(data || []);
+    } catch (error) {
+      console.error('Error fetching informes:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlantillas();
+    fetchInformes();
+  }, []);
+
   const handleDeletePlantilla = async (id) => {
     if (!confirm('¿Seguro que deseas eliminar esta plantilla?')) return;
     try {
@@ -136,6 +154,35 @@ export default function Ajustes() {
       fetchPlantillas();
     } catch (error) {
       console.error('Error deleting plantilla:', error);
+    }
+  };
+
+  const handleConvertToTemplate = async () => {
+    if (!selectedInformeId || !templateName) return;
+    setIsConverting(true);
+    setConvertMessage(null);
+    try {
+      const { data: informe, error: fetchError } = await supabase
+        .from('informes')
+        .select('pages_data')
+        .eq('id', selectedInformeId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const { error: insertError } = await supabase
+        .from('plantillas')
+        .insert([{ nombre: templateName, pages_data: informe.pages_data }]);
+      if (insertError) throw insertError;
+
+      await fetchPlantillas();
+      setConvertMessage({ type: 'success', text: `Plantilla "${templateName}" creada correctamente.` });
+      setSelectedInformeId('');
+      setTemplateName('');
+    } catch (error) {
+      console.error('Error converting informe:', error);
+      setConvertMessage({ type: 'error', text: 'Error al convertir el informe. Intentá de nuevo.' });
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -473,6 +520,76 @@ export default function Ajustes() {
               )}
             </div>
           </div>
+
+          {canManage && (
+            <div className="border-t border-gray-200 pt-6">
+              <FieldLabel>Convertir desde Informe Existente</FieldLabel>
+              <p className="text-xs text-gray-400 mb-4 -mt-1 px-1">Seleccioná un informe para crear una plantilla a partir de su contenido.</p>
+              <div className="space-y-3">
+                <select
+                  value={selectedInformeId}
+                  onChange={(e) => {
+                    setSelectedInformeId(e.target.value);
+                    const inf = informes.find(i => i.id === e.target.value);
+                    if (inf) setTemplateName(inf.titulo);
+                  }}
+                  className="w-full px-5 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer"
+                >
+                  <option value="">Seleccionar informe...</option>
+                  {informes.map(i => (
+                    <option key={i.id} value={i.id}>
+                      {i.titulo}{i.campos ? ` — ${i.campos.nombre}` : ''}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="Nombre de la plantilla"
+                    className="w-full pl-5 pr-5 py-3.5 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all duration-200 font-semibold text-gray-700 placeholder:text-gray-300"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConvertToTemplate}
+                  disabled={!selectedInformeId || !templateName || isConverting}
+                  className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg active:scale-95
+                    ${!selectedInformeId || !templateName || isConverting
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                      : convertMessage?.type === 'success'
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/25'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-500/20'}`}
+                >
+                  {isConverting ? (
+                    <><Loader2 className="w-5 h-5 animate-spin" /> Convirtiendo...</>
+                  ) : convertMessage?.type === 'success' ? (
+                    <><CheckCircle2 className="w-5 h-5" /> ¡Convertida!</>
+                  ) : (
+                    'Convertir en Plantilla'
+                  )}
+                </button>
+
+                {convertMessage && (
+                  <div className={`flex items-center gap-2 text-xs font-bold px-4 py-3 rounded-xl border ${
+                    convertMessage.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-red-50 text-red-700 border-red-200'
+                  }`}>
+                    {convertMessage.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                      <span className="text-red-500">⚠</span>
+                    )}
+                    {convertMessage.text}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </SectionCard>
 
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2 pb-4">
