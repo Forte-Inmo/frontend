@@ -1,8 +1,15 @@
 import { supabase } from '../lib/supabase';
 
+function generateToken() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return crypto.getRandomValues(new Uint8Array(16)).reduce(
+    (s, b) => s + b.toString(16).padStart(2, '0'), ''
+  );
+}
+
 export function useExportPDF() {
   const exportPDF = async ({ informeId, filename }) => {
-    const token = crypto.randomUUID();
+    const token = generateToken();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     const { error: tokenError } = await supabase
