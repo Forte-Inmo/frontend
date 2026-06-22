@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 const nodemailer = require('nodemailer');
 
 const app = express();
@@ -14,7 +15,9 @@ app.use(express.json({ limit: '50mb' }));
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  realtime: { transport: ws },
+});
 
 let transporter = null;
 if (process.env.SMTP_HOST) {
