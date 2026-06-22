@@ -1,7 +1,9 @@
 FROM ghcr.io/puppeteer/puppeteer:21.0.0
 
 USER root
-RUN apt-get update && apt-get install -y ghostscript --no-install-recommends && rm -rf /var/lib/apt/lists/*
+RUN rm -f /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && apt-get install -y ghostscript --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
 USER puppeteer
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
