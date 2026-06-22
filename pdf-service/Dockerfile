@@ -1,7 +1,7 @@
 FROM ghcr.io/puppeteer/puppeteer:21.0.0
 
 USER root
-RUN rm -f /etc/apt/sources.list.d/google-chrome.list && \
+RUN sed -i '/dl\.google\.com\/linux\/chrome/d' /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null; \
     apt-get update && apt-get install -y ghostscript --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
 USER puppeteer
