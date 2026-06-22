@@ -133,13 +133,13 @@ async function processJob(job) {
     await page.emulateMediaType('screen');
 
     updateJob(job, { progress: 10, logs: [...job.logs, 'Navegando a la URL del informe...'] });
-    await page.goto(job.url, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.goto(job.url, { waitUntil: 'networkidle2', timeout: 30000 });
     updateJob(job, { progress: 30, logs: [...job.logs, 'Página cargada, esperando fuentes...'] });
 
     await page.waitForFunction('document.fonts.ready', { timeout: 10000 });
     updateJob(job, { progress: 40, logs: [...job.logs, 'Fuentes listas, esperando render completo...'] });
 
-    await page.waitForSelector('[data-render-complete="true"]', { timeout: 15000 });
+    await page.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
     updateJob(job, { progress: 45, logs: [...job.logs, 'Render completo, generando PDF...'] });
 
     await page.waitForNetworkIdle({ idleTime: 500 });

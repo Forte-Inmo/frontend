@@ -17,18 +17,12 @@ export default function RenderPage() {
   const [status, setStatus] = useState('validating');
   const [informe, setInforme] = useState(null);
   const [pagesData, setPagesData] = useState([]);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
-  const [fontReady, setFontReady] = useState(false);
   const rootRef = useRef(null);
 
   const { settings } = useSettings();
   const accessToken = searchParams.get('access_token');
   const refreshToken = searchParams.get('refresh_token');
   const fetched = useRef(false);
-
-  useEffect(() => {
-    document.fonts.ready.then(() => setFontReady(true));
-  }, []);
 
   useEffect(() => {
     if (fetched.current) return;
@@ -100,37 +94,61 @@ export default function RenderPage() {
   }, [token, informeId]);
 
   useEffect(() => {
-    if (status !== 'ready' || !fontReady) return;
+    if (status !== 'ready') return;
 
-    const images = document.querySelectorAll('#render-root img');
-    if (images.length === 0) {
-      setImagesLoaded(true);
-      return;
-    }
+    let destroyed = false;
 
-    let loaded = 0;
-    const total = images.length;
+    (async () => {
+      await document.fonts.ready;
+      if (destroyed) return;
 
-    const onDone = () => {
-      loaded++;
-      if (loaded >= total) setImagesLoaded(true);
-    };
+      const allImages = new Set();
+      const trackImg = (img) => {
+        if (allImages.has(img)) return;
+        allImages.add(img);
+      };
 
-    images.forEach((img) => {
-      if (img.complete) {
-        onDone();
-      } else {
-        img.addEventListener('load', onDone);
-        img.addEventListener('error', onDone);
+      document.querySelectorAll('#render-root img').forEach(trackImg);
+
+      const observer = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          for (const node of m.addedNodes) {
+            if (node.nodeName === 'IMG') trackImg(node);
+            if (node.querySelectorAll) {
+              node.querySelectorAll('img').forEach(trackImg);
+            }
+          }
+        }
+      });
+      const rootEl = document.getElementById('render-root');
+      if (rootEl) {
+        observer.observe(rootEl, { childList: true, subtree: true });
       }
-    });
-  }, [status, fontReady, pagesData]);
 
-  useEffect(() => {
-    if (status === 'ready' && imagesLoaded && fontReady && rootRef.current) {
-      rootRef.current.setAttribute('data-render-complete', 'true');
-    }
-  }, [status, imagesLoaded, fontReady]);
+      const waitImages = () => new Promise((resolve) => {
+        const check = () => {
+          const pending = [...allImages].filter(img => !img.complete);
+          if (pending.length === 0) return resolve();
+          pending.forEach(img => {
+            img.addEventListener('load', check, { once: true });
+            img.addEventListener('error', check, { once: true });
+          });
+        };
+        check();
+      });
+
+      await waitImages();
+      if (destroyed) return;
+
+      await new Promise(r => setTimeout(r, 500));
+      if (destroyed) return;
+
+      observer.disconnect();
+      rootRef.current?.setAttribute('data-render-complete', 'true');
+    })();
+
+    return () => { destroyed = true; };
+  }, [status]);
 
   if (status === 'error') {
     return (
