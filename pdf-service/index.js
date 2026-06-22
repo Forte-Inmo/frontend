@@ -103,7 +103,15 @@ async function sendEmail(recipientEmail, downloadUrl, informeTitle) {
 }
 
 async function processJob(job) {
-  updateJob(job, { stage: 'rendering', progress: 5, logs: [...job.logs, 'Iniciando renderizado...'] });
+  const t = (label) => {
+    const s = ((Date.now() - job.createdAt) / 1000).toFixed(1);
+    const msg = `[${s}s] ${label}`;
+    console.log(msg);
+    updateJob(job, { logs: [...job.logs, msg] });
+  };
+
+  updateJob(job, { stage: 'rendering', progress: 5 });
+  t('Iniciando renderizado...');
   let browser;
   try {
     browser = await puppeteer.launch({
@@ -123,24 +131,28 @@ async function processJob(job) {
 
     const page = await browser.newPage();
     page.on('console', (msg) => {
-      updateJob(job, { logs: [...job.logs, `[browser] ${msg.text()}`] });
+      t(`[browser] ${msg.text()}`);
     });
     page.on('pageerror', (err) => {
-      updateJob(job, { logs: [...job.logs, `[browser error] ${err.message}`] });
+      t(`[browser error] ${err.message}`);
     });
 
     await page.setViewport({ width: 794, height: 1123 });
     await page.emulateMediaType('screen');
 
-    updateJob(job, { progress: 10, logs: [...job.logs, 'Navegando a la URL del informe...'] });
+    t('Navegando a la URL del informe...');
+    updateJob(job, { progress: 10 });
     await page.goto(job.url, { waitUntil: 'networkidle2', timeout: 30000 });
-    updateJob(job, { progress: 30, logs: [...job.logs, 'Página cargada, esperando fuentes...'] });
+    updateJob(job, { progress: 30 });
+    t('Página cargada, esperando fuentes...');
 
     await page.waitForFunction('document.fonts.ready', { timeout: 10000 });
-    updateJob(job, { progress: 40, logs: [...job.logs, 'Fuentes listas, esperando render completo...'] });
+    updateJob(job, { progress: 40 });
+    t('Fuentes listas, esperando render completo...');
 
     await page.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
-    updateJob(job, { progress: 45, logs: [...job.logs, 'Render completo, generando PDF...'] });
+    updateJob(job, { progress: 45 });
+    t('Render completo, generando PDF...');
 
     await page.waitForNetworkIdle({ idleTime: 500 });
 
@@ -154,9 +166,11 @@ async function processJob(job) {
         setTimeout(() => reject(new Error('PDF generation timeout (60s)')), 60000)
       ),
     ]);
-    updateJob(job, { progress: 70, logs: [...job.logs, `PDF generado (${(pdf.length / 1024).toFixed(0)} KB)`] });
+    updateJob(job, { progress: 70 });
+    t(`PDF generado (${(pdf.length / 1024).toFixed(0)} KB)`);
 
-    updateJob(job, { stage: 'cmyk', progress: 80, logs: [...job.logs, 'Convirtiendo a CMYK con Ghostscript...'] });
+    updateJob(job, { stage: 'cmyk', progress: 80 });
+    t('Convirtiendo a CMYK con Ghostscript...');
     const tmpInput = path.join('/tmp', `pdf-input-${Date.now()}.pdf`);
     const tmpOutput = path.join('/tmp', `pdf-output-${Date.now()}.pdf`);
     fs.writeFileSync(tmpInput, pdf);
@@ -172,16 +186,18 @@ async function processJob(job) {
         { timeout: 120000 }
       );
       finalPdf = fs.readFileSync(tmpOutput);
-      updateJob(job, { progress: 90, logs: [...job.logs, 'Conversión CMYK completada'] });
+      updateJob(job, { progress: 90 });
+      t('Conversión CMYK completada');
     } catch (gsErr) {
-      updateJob(job, { logs: [...job.logs, `CMYK falló, usando RGB: ${gsErr.message}`] });
+      t(`CMYK falló, usando RGB: ${gsErr.message}`);
       finalPdf = Buffer.from(pdf);
     } finally {
       try { fs.unlinkSync(tmpInput); } catch (_) {}
       try { fs.unlinkSync(tmpOutput); } catch (_) {}
     }
 
-    updateJob(job, { progress: 95, logs: [...job.logs, 'Subiendo PDF a Storage...'] });
+    t('Subiendo PDF a Storage...');
+    updateJob(job, { progress: 95 });
 
     try {
       const storagePath = await uploadToStorage(job.userId, job.informeId, finalPdf);
@@ -190,7 +206,7 @@ async function processJob(job) {
         storage_path: storagePath,
         completed_at: new Date().toISOString(),
       });
-      updateJob(job, { logs: [...job.logs, 'PDF subido a Storage'] });
+      t('PDF subido a Storage');
 
       const downloadUrl = `${APP_URL}/pdf-download/${job.exportId}`;
       await Promise.race([
@@ -198,19 +214,19 @@ async function processJob(job) {
         new Promise(r => setTimeout(r, 10000)),
       ]);
 
+      t('PDF listo para descargar. Email enviado.');
       updateJob(job, {
         stage: 'done',
         progress: 100,
-        logs: [...job.logs, 'PDF listo para descargar. Email enviado.'],
         pdf: finalPdf,
       });
     } catch (storageErr) {
-      updateJob(job, { logs: [...job.logs, `Storage subida falló, sirviendo directo: ${storageErr.message}`] });
+      t(`Storage subida falló, sirviendo directo: ${storageErr.message}`);
       await updatePdfExport(job.exportId, { status: 'done', completed_at: new Date().toISOString() });
+      t('PDF listo para descargar (sin storage)');
       updateJob(job, {
         stage: 'done',
         progress: 100,
-        logs: [...job.logs, 'PDF listo para descargar (sin storage)'],
         pdf: finalPdf,
       });
     }
@@ -219,10 +235,11 @@ async function processJob(job) {
       const page = await browser?.newPage?.();
       if (page) {
         await page.screenshot({ path: '/tmp/pdf-error.png', fullPage: true });
-        updateJob(job, { logs: [...job.logs, 'Screenshot guardado en /tmp/pdf-error.png'] });
+        t('Screenshot guardado en /tmp/pdf-error.png');
       }
     } catch (_) {}
-    updateJob(job, { stage: 'error', progress: 0, error: err.message, logs: [...job.logs, `ERROR: ${err.message}`] });
+    t(`ERROR: ${err.message}`);
+    updateJob(job, { stage: 'error', progress: 0, error: err.message });
     await updatePdfExport(job.exportId, { status: 'error', error: err.message });
   } finally {
     if (browser) await browser.close();
