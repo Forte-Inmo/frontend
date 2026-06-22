@@ -54,13 +54,16 @@ async function updatePdfExport(exportId, updates) {
 async function uploadToStorage(userId, informeId, pdfBuffer) {
   const timestamp = Date.now();
   const storagePath = `${userId}/${informeId}_${timestamp}.pdf`;
-  const { error } = await supabase.storage
-    .from('pdf-exports')
-    .upload(storagePath, pdfBuffer, {
+  const result = await Promise.race([
+    supabase.storage.from('pdf-exports').upload(storagePath, pdfBuffer, {
       contentType: 'application/pdf',
       upsert: true,
-    });
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+    }),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Storage upload timeout (15s)')), 15000)
+    ),
+  ]);
+  if (result.error) throw new Error(`Storage upload failed: ${result.error.message}`);
   return storagePath;
 }
 
@@ -190,7 +193,10 @@ async function processJob(job) {
       updateJob(job, { logs: [...job.logs, 'PDF subido a Storage'] });
 
       const downloadUrl = `${APP_URL}/pdf-download/${job.exportId}`;
-      await sendEmail(job.userEmail, downloadUrl, job.informeTitle);
+      await Promise.race([
+        sendEmail(job.userEmail, downloadUrl, job.informeTitle),
+        new Promise(r => setTimeout(r, 10000)),
+      ]);
 
       updateJob(job, {
         stage: 'done',
