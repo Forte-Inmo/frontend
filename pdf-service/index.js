@@ -41,6 +41,7 @@ const JOB_TIMEOUT = 120 * 1000;
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
 
 async function updatePdfExport(exportId, updates) {
+  if (!exportId) return;
   const { error } = await supabase
     .from('pdf_exports')
     .update(updates)
@@ -227,27 +228,16 @@ function updateJob(job, updates) {
   jobs.set(job.id, updated);
 }
 
-app.post('/generate-pdf', async (req, res) => {
+app.post('/generate-pdf', (req, res) => {
   const { url, informeId, userId, userEmail, informeTitle } = req.body;
   if (!url) return res.status(400).json({ error: 'url is required' });
   if (!informeId) return res.status(400).json({ error: 'informeId is required' });
   if (!userId) return res.status(400).json({ error: 'userId is required' });
 
-  const { data: exportRecord, error: dbError } = await supabase
-    .from('pdf_exports')
-    .insert({ informe_id: informeId, user_id: userId, status: 'pending' })
-    .select()
-    .single();
-
-  if (dbError) {
-    return res.status(500).json({ error: 'Failed to create export record: ' + dbError.message });
-  }
-
-  const exportId = exportRecord.id;
   const jobId = crypto.randomUUID();
   const job = {
     id: jobId,
-    exportId,
+    exportId: null,
     url,
     informeId,
     userId,
@@ -261,8 +251,23 @@ app.post('/generate-pdf', async (req, res) => {
     createdAt: Date.now(),
   };
   jobs.set(jobId, job);
+
+  supabase
+    .from('pdf_exports')
+    .insert({ informe_id: informeId, user_id: userId, status: 'pending' })
+    .select()
+    .single()
+    .then(({ data, error }) => {
+      if (error) {
+        console.error('Failed to create export record:', error.message);
+        updateJob(job, { stage: 'error', error: 'Failed to create export record: ' + error.message });
+        return;
+      }
+      updateJob(job, { exportId: data.id });
+    });
+
+  res.json({ jobId });
   processJob(job);
-  res.json({ exportId, jobId });
 });
 
 app.get('/pdf-status/:jobId', (req, res) => {

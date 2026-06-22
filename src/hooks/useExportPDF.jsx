@@ -52,7 +52,7 @@ export function useExportPDF() {
       throw new Error('Error generando PDF: ' + err);
     }
 
-    const { jobId, exportId } = await response.json();
+    const { jobId } = await response.json();
     if (!jobId) throw new Error('No se recibió jobId del servicio PDF');
 
     let done = false;
