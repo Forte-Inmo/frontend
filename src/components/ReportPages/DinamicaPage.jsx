@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, GripVertical, Table as TableIcon, X } from 'lucide-react';
+import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, GripVertical, Table as TableIcon, PieChart, X } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { convertShadowForPDF } from '../../utils/pdfShadowUtils';
 
@@ -161,6 +161,26 @@ export default function DinamicaPage({
           borderColor: '#e5e4e7',
           alternateRowColor: '#f4f4f5',
         },
+      });
+    } else if (type === 'piechart') {
+      Object.assign(newBlock, {
+        variant: 'transparent',
+        title: 'Gráfico',
+        showTable: true,
+        showCard: true,
+        pieTitle: 'MONTE\nLIMPIO\nTOTAL',
+        pieStats: ['2.33%', '97.67%', '4495 HAS.'],
+        slices: [
+          { id: '1', label: 'Monte',  percentage: 56, color: '#ccff00' },
+          { id: '2', label: 'Limpio', percentage: 34, color: '#4a8df8' },
+          { id: '3', label: 'Otro',   percentage: 10, color: '#003399' },
+        ],
+        tableData: [
+          { calc: '20% - 30%', desc: 'BOSQUE DE CALDÉN ALTO' },
+          { calc: '35% - 45%', desc: 'ESTRATO ARBUSTIVO MEDIO-DENSO TRANSICIÓN ENTRE MONTE CERRADO Y ÁREAS ABIERTAS' },
+          { calc: '20% - 30%', desc: 'ESTRATO ARBUSTIVO ABIERTO O LAXO ZONAS CON MAYOR APTITUD GANADERA' },
+          { calc: '2% - 5%',   desc: 'SECTORES LIMPIO / INTERVENIDOS CLARAMENTE VISIBLES EN LADO DERECHO Y ARRIBA' },
+        ],
       });
     } else {
       Object.assign(newBlock, { text: 'Nuevo bloque de información...' });
@@ -324,7 +344,7 @@ export default function DinamicaPage({
                              return { width: `${scale}%` };
                            })() : {}}
                          />
-                     ) : (
+                ) : (
                         <label data-no-print="true" className="w-full py-8 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-black/10 transition-all">
                            <div className="p-4 bg-white/20 rounded-full">
                               <Upload className="w-6 h-6 opacity-40" />
@@ -349,8 +369,139 @@ export default function DinamicaPage({
                          />
                       </label>
                    )}
-                </div>
-              ) : block.type === 'table' ? (
+                 </div>
+               ) : block.type === 'piechart' ? (
+                   <div className="w-full">
+                     {(() => {
+                        const rawSlices = block.slices || [];
+                        const slices = rawSlices.filter(s => Number(s.percentage || 0) > 0);
+                       const tableData = block.tableData || [];
+                       const polarToXY = (deg, radius) => ({
+                         x: 100 + radius * Math.cos((deg - 90) * (Math.PI / 180)),
+                         y: 100 + radius * Math.sin((deg - 90) * (Math.PI / 180)),
+                       });
+                       let cum = 0;
+                       return (
+                          <div className="flex flex-col" style={{ minHeight: '160mm' }}>
+                            {/* WHITE CARD with circle + legend inside */}
+                            <div
+                              className="relative bg-white shadow-2xl flex-none"
+                              style={{
+                                borderRadius: '1.5rem',
+                                padding: '7mm 8mm 0 8mm',
+                                minHeight: '80mm',
+                              }}
+                            >
+                              {/* Title + Stats + Legend inline */}
+                              {block.showCard !== false && (
+                                <div className="relative" style={{ paddingBottom: '42mm' }}>
+                                  <div className="flex flex-col gap-1" style={{ paddingRight: '180px' }}>
+                                    {(block.pieTitle || 'MONTE\nLIMPIO\nTOTAL').split('\n').map((line, i) => (
+                                      <div key={i} className="flex items-baseline gap-4">
+                                        <div
+                                          contentEditable={isEditMode}
+                                          suppressContentEditableWarning
+                                          onBlur={(e) => {
+                                            const lines = (block.pieTitle || 'MONTE\nLIMPIO\nTOTAL').split('\n');
+                                            lines[i] = e.currentTarget.innerText;
+                                            updateBlock(idx, 'pieTitle', lines.join('\n'));
+                                          }}
+                                          className="font-black italic uppercase outline-none"
+                                          style={{ color: '#003399', fontSize: '36px', lineHeight: 1.1, whiteSpace: 'pre-wrap' }}
+                                          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        >
+                                          {line}
+                                        </div>
+                                        <div
+                                          contentEditable={isEditMode}
+                                          suppressContentEditableWarning
+                                          onBlur={(e) => {
+                                            const stats = [...(block.pieStats || ['2.33%', '97.67%', '4495 HAS.'])];
+                                            stats[i] = e.currentTarget.innerText;
+                                            updateBlock(idx, 'pieStats', stats);
+                                          }}
+                                          className="font-black italic outline-none"
+                                          style={{ color: '#003399', fontSize: '34px', lineHeight: 1 }}
+                                          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                                        >
+                                          {(block.pieStats || ['2.33%', '97.67%', '4495 HAS.'])[i] || ''}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="absolute flex flex-col gap-1" style={{ top: 0, left: '400px' }}>
+                                    {slices.map((s, i) => (
+                                      <div key={i} className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full flex-none" style={{ backgroundColor: s.color }} />
+                                        <span className="font-black text-[12px] italic uppercase tracking-wider whitespace-nowrap" style={{ color: '#003399' }}>{s.label}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Circle - absolute at bottom-left, extends below card */}
+                              <div className="absolute" style={{ bottom: '-37.5mm', left: 0, zIndex: 10 }}>
+                                <div className="bg-white rounded-full overflow-hidden shadow-sm" style={{ width: '75mm', height: '75mm' }}>
+                                  <div className="w-full h-full p-0 flex items-center justify-center">
+                                    <svg viewBox="0 0 200 200" className="w-full h-full block">
+                                      <circle cx="100" cy="100" r="100" fill="white" />
+                                      {(slices.map((slice, i) => {
+                                        const startDeg = (cum / 100) * 360;
+                                        const currentPercentage = Number(slice.percentage);
+                                        cum += currentPercentage;
+                                        const endDeg = (cum / 100) * 360;
+                                        if (currentPercentage >= 99.99) {
+                                          return <circle key={slice.id || i} cx="100" cy="100" r="92" fill={slice.color} />;
+                                        }
+                                        const large = currentPercentage > 50 ? 1 : 0;
+                                        const start = polarToXY(startDeg, 92);
+                                        const end = polarToXY(endDeg, 92);
+                                        const midDeg = startDeg + (currentPercentage / 2 / 100) * 360;
+                                        const lx = 100 + 92 * 0.6 * Math.cos((midDeg - 90) * (Math.PI / 180));
+                                        const ly = 100 + 92 * 0.6 * Math.sin((midDeg - 90) * (Math.PI / 180));
+                                        return (
+                                          <g key={slice.id || i}>
+                                            <path d={`M 100 100 L ${start.x} ${start.y} A 92 92 0 ${large} 1 ${end.x} ${end.y} Z`} fill={slice.color} stroke="white" strokeWidth="1" />
+                                            <text x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" fill={slice.color === '#ccff00' ? '#003399' : 'white'} fontSize="18" fontWeight="900" style={{ pointerEvents: 'none' }}>{Math.round(currentPercentage)}%</text>
+                                          </g>
+                                        );
+                                      }))}
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+
+                            </div>
+
+                             {block.showTable !== false && (
+                             <>
+                             {/* RANGES TABLE */}
+                             <div className="flex-1 flex flex-col justify-start gap-5" style={{ paddingLeft: '6mm', paddingRight: '6mm', marginTop: '42mm' }}>
+                               {tableData.map((row, i) => (
+                                 <div key={i} className="flex items-start gap-8">
+                                   <div
+                                     className="font-black italic whitespace-nowrap flex-none"
+                                     style={{ color: '#ccff00', fontSize: '26px', lineHeight: 1, textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+                                   >
+                                     {row.calc}
+                                   </div>
+                                   <div
+                                     className="font-bold uppercase leading-tight"
+                                     style={{ color: block.textColor, fontSize: '11px', letterSpacing: '0.05em', paddingTop: '4px' }}
+                                   >
+                                     {row.desc}
+                                   </div>
+                                 </div>
+                               ))}
+                             </div>
+                             </>
+                             )}
+                          </div>
+                       );
+                     })()}
+                   </div>
+               ) : block.type === 'table' ? (
                 <div className="overflow-x-auto w-full">
                   <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 14, color: block.textColor, backgroundColor: block.variant === 'transparent' ? 'transparent' : (block.bgColor || '#ffffff') }}>
                     <thead>
@@ -570,6 +721,12 @@ export default function DinamicaPage({
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
                 >
                   <TableIcon className="w-4 h-4" /> Tabla
+                </button>
+                <button
+                  onClick={() => { addBlock('piechart'); setShowAddMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  <PieChart className="w-4 h-4" /> Gráfico
                 </button>
                 <div className="h-px bg-white/10 my-1" />
                 <label className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer">

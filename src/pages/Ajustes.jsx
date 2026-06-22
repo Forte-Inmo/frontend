@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Lock, Settings, Building2, Upload, Globe, Image, Phone, MapPin, CheckCircle2, Loader2, Palette, Layers, PieChart, Type, FileText, Edit3, Trash2, Plus } from 'lucide-react';
+import { Lock, Settings, Building2, Upload, Globe, Image, Phone, MapPin, CheckCircle2, Loader2, Palette, Layers, Type, FileText, Edit3, Trash2, Plus } from 'lucide-react';
 
 /* ─── Reusable field components ─────────────────────────── */
 
@@ -416,7 +416,6 @@ export default function Ajustes() {
               { id: 'SITUACION_ACTUAL', name: 'Situación Actual', icon: Image },
               { id: 'DINAMICA', name: 'Página Dinámica', icon: Layers },
               { id: 'TEXTO_FOTOS', name: 'Contenido Mixto', icon: Type },
-              { id: 'ANALISIS_SUELO', name: 'Análisis de Suelo', icon: PieChart },
             ].map((module) => (
               <div key={module.id} className="flex items-center justify-between bg-gray-50 p-5 rounded-[2rem] border border-gray-100">
                 <div className="flex items-center gap-4">

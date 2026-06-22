@@ -11,7 +11,6 @@ import {
   Map as MapIcon, 
   Image as ImageIcon, 
   Type, 
-  PieChart, 
   Settings, 
   Download, 
   Layers,
@@ -614,58 +613,62 @@ export default function InformeBuilder() {
                     </div>
                   </div>
 
-                  {/* Estilo de Bloque */}
-                  <div className="space-y-4">
-                    <FieldLabel>Estilo de Bloque</FieldLabel>
-                          <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
-                      {[
-                        { id: 'standard', label: 'Estándar' },
-                        { id: 'fade-top', label: 'Fundido' },
-                        { id: 'transparent', label: 'Transparente' }
-                      ].map(option => (
-                        <button 
-                          key={option.id}
-                          onClick={() => {
-                            const newBlocks = [...activePage.blocks];
-                            newBlocks[activeBlockIndex].variant = option.id;
-                            handleUpdatePage(activePageIndex, 'blocks', newBlocks);
-                          }}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${ (activePage.blocks[activeBlockIndex].variant || 'standard') === option.id ? 'bg-emerald-500 shadow-md text-white scale-105' : 'text-gray-400 hover:text-gray-600' }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+{activePage.blocks[activeBlockIndex].type !== 'piechart' && (
+<>
+                   {/* Estilo de Bloque */}
+                   <div className="space-y-4">
+                     <FieldLabel>Estilo de Bloque</FieldLabel>
+                           <div className="flex bg-gray-50 p-1.5 rounded-2xl gap-1">
+                       {[
+                         { id: 'standard', label: 'Estándar' },
+                         { id: 'fade-top', label: 'Fundido' },
+                         { id: 'transparent', label: 'Transparente' }
+                       ].map(option => (
+                         <button 
+                           key={option.id}
+                           onClick={() => {
+                             const newBlocks = [...activePage.blocks];
+                             newBlocks[activeBlockIndex].variant = option.id;
+                             handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                           }}
+                           className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all flex items-center justify-center gap-2 ${ (activePage.blocks[activeBlockIndex].variant || 'standard') === option.id ? 'bg-emerald-500 shadow-md text-white scale-105' : 'text-gray-400 hover:text-gray-600' }`}
+                         >
+                           {option.label}
+                         </button>
+                       ))}
+                     </div>
+                   </div>
 
-                  {(activePage.blocks[activeBlockIndex].variant || 'standard') === 'fade-top' && (
-                    <div className="space-y-4">
-                      <FieldLabel>Altura del Fundido</FieldLabel>
-                      <div className="bg-gray-50 p-4 rounded-3xl">
-                        <input
-                          type="range"
-                          min="50"
-                          max="100"
-                          step="5"
-                          value={activePage.blocks[activeBlockIndex].fadeStop ?? 85}
-                          onChange={(e) => {
-                            const newBlocks = [...activePage.blocks];
-                            newBlocks[activeBlockIndex].fadeStop = Number(e.target.value);
-                            handleUpdatePage(activePageIndex, 'blocks', newBlocks);
-                          }}
-                          className="w-full accent-emerald-500"
-                        />
-                        <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2">
-                          <span>50%</span>
-                          <span>{activePage.blocks[activeBlockIndex].fadeStop ?? 85}%</span>
-                          <span>100%</span>
-                        </div>
-                        <p className="text-[8px] font-bold text-gray-400 uppercase text-center mt-1">
-                          El fundido siempre arranca al 50% del bloque
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                   {(activePage.blocks[activeBlockIndex].variant || 'standard') === 'fade-top' && (
+                     <div className="space-y-4">
+                       <FieldLabel>Altura del Fundido</FieldLabel>
+                       <div className="bg-gray-50 p-4 rounded-3xl">
+                         <input
+                           type="range"
+                           min="50"
+                           max="100"
+                           step="5"
+                           value={activePage.blocks[activeBlockIndex].fadeStop ?? 85}
+                           onChange={(e) => {
+                             const newBlocks = [...activePage.blocks];
+                             newBlocks[activeBlockIndex].fadeStop = Number(e.target.value);
+                             handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                           }}
+                           className="w-full accent-emerald-500"
+                         />
+                         <div className="flex justify-between text-[10px] font-bold text-gray-400 mt-2">
+                           <span>50%</span>
+                           <span>{activePage.blocks[activeBlockIndex].fadeStop ?? 85}%</span>
+                           <span>100%</span>
+                         </div>
+                         <p className="text-[8px] font-bold text-gray-400 uppercase text-center mt-1">
+                           El fundido siempre arranca al 50% del bloque
+                         </p>
+                       </div>
+                     </div>
+                   )}
+</>
+)}
 
                   {/* Image-specific Controls */}
                   {activePage.blocks[activeBlockIndex].type === 'image' && (
@@ -884,11 +887,339 @@ export default function InformeBuilder() {
                            />
                          </label>
                        </div>
-                     </div>
-                   )}
+                      </div>
+                    )}
 
-                   {/* Ancho del Bloque */}
-                   {activePage.blocks[activeBlockIndex].type !== 'title' && (
+                    {/* Piechart-specific Controls */}
+                    {activePage.blocks[activeBlockIndex].type === 'piechart' && (
+                      <div className="space-y-6">
+                        {/* Card Stats Toggle + Editing */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between bg-gray-50 p-5 rounded-3xl">
+                            <div>
+                              <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest block">Estadísticas de Tarjeta</span>
+                              <span className="text-[8px] font-bold text-gray-400 uppercase">Mostrar título y estadísticas</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const newBlocks = [...activePage.blocks];
+                                newBlocks[activeBlockIndex].showCard = newBlocks[activeBlockIndex].showCard === false ? true : false;
+                                handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                              }}
+                              className={`w-14 h-7 rounded-full transition-all relative ${activePage.blocks[activeBlockIndex].showCard !== false ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                            >
+                              <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${activePage.blocks[activeBlockIndex].showCard !== false ? 'right-1' : 'left-1'}`} />
+                            </button>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-3xl space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Filas (título + estadística)</span>
+                              <button
+                                onClick={() => {
+                                  const newBlocks = [...activePage.blocks];
+                                  const titles = (newBlocks[activeBlockIndex].pieTitle || 'MONTE\nLIMPIO\nTOTAL').split('\n');
+                                  const stats = [...(newBlocks[activeBlockIndex].pieStats || ['2.33%', '97.67%', '4495 HAS.'])];
+                                  titles.push('');
+                                  stats.push('');
+                                  newBlocks[activeBlockIndex].pieTitle = titles.join('\n');
+                                  newBlocks[activeBlockIndex].pieStats = stats;
+                                  handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                }}
+                                className="p-1 hover:bg-emerald-50 rounded-lg transition-colors text-gray-400 hover:text-emerald-500"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                            {(activePage.blocks[activeBlockIndex].pieTitle || 'MONTE\nLIMPIO\nTOTAL').split('\n').map((line, li) => (
+                              <div key={li} className="flex items-center gap-2">
+                                <input
+                                  value={line}
+                                  onChange={(e) => {
+                                    const newBlocks = [...activePage.blocks];
+                                    const titles = (newBlocks[activeBlockIndex].pieTitle || 'MONTE\nLIMPIO\nTOTAL').split('\n');
+                                    titles[li] = e.target.value;
+                                    newBlocks[activeBlockIndex].pieTitle = titles.join('\n');
+                                    handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                  }}
+                                  className="flex-1 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-[10px] font-black text-gray-700 uppercase outline-none focus:border-emerald-400"
+                                  placeholder="Título"
+                                />
+                                <input
+                                  value={(activePage.blocks[activeBlockIndex].pieStats || ['2.33%', '97.67%', '4495 HAS.'])[li] || ''}
+                                  onChange={(e) => {
+                                    const newBlocks = [...activePage.blocks];
+                                    const stats = [...(newBlocks[activeBlockIndex].pieStats || ['2.33%', '97.67%', '4495 HAS.'])];
+                                    stats[li] = e.target.value;
+                                    newBlocks[activeBlockIndex].pieStats = stats;
+                                    handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                  }}
+                                  className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-[10px] font-black text-gray-700 outline-none focus:border-emerald-400"
+                                  placeholder="Ej: 2.33%"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const newBlocks = [...activePage.blocks];
+                                    const titles = (newBlocks[activeBlockIndex].pieTitle || 'MONTE\nLIMPIO\nTOTAL').split('\n');
+                                    const stats = [...(newBlocks[activeBlockIndex].pieStats || ['2.33%', '97.67%', '4495 HAS.'])];
+                                    titles.splice(li, 1);
+                                    stats.splice(li, 1);
+                                    newBlocks[activeBlockIndex].pieTitle = titles.join('\n');
+                                    newBlocks[activeBlockIndex].pieStats = stats;
+                                    handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                  }}
+                                  className="p-1 hover:bg-red-100 rounded-lg transition-colors text-gray-400 hover:text-red-500"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="h-px bg-gray-100" />
+                        <div className="space-y-3">
+                          <FieldLabel>Configuración de Sectores</FieldLabel>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                const newBlocks = [...activePage.blocks];
+                                const slices = [...(newBlocks[activeBlockIndex].slices || [])];
+                                const n = slices.length + 1;
+                                const equalPct = Math.round(100 / n);
+                                const adjusted = slices.map(s => ({ ...s, percentage: equalPct }));
+                                adjusted.push({ id: `${Date.now()}`, label: `Sector ${n}`, percentage: 100 - equalPct * (n - 1), color: ['#ccff00', '#4a8df8', '#003399', '#f97316', '#a855f7', '#22c55e', '#ef4444', '#06b6d4'][(n - 1) % 8] });
+                                newBlocks[activeBlockIndex].slices = adjusted;
+                                handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                              }}
+                              className="flex-1 py-3 bg-gray-50 hover:bg-emerald-50 rounded-xl text-[10px] font-black text-gray-600 hover:text-emerald-600 transition-all flex items-center justify-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" /> Sector
+                            </button>
+                          </div>
+                          <div className="space-y-2">
+                            {((activePage.blocks[activeBlockIndex].slices || [])).map((slice, si) => (
+                              <div key={slice.id} className="bg-gray-50 p-3 rounded-2xl">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div
+                                    className="w-4 h-4 rounded-full flex-none border border-gray-200"
+                                    style={{ backgroundColor: slice.color }}
+                                  />
+                                  <span
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onBlur={(e) => {
+                                      const newBlocks = [...activePage.blocks];
+                                      const slices = [...newBlocks[activeBlockIndex].slices];
+                                      slices[si] = { ...slices[si], label: e.currentTarget.innerText };
+                                      newBlocks[activeBlockIndex].slices = slices;
+                                      handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                    }}
+                                    className="flex-1 bg-transparent border-none outline-none font-black text-[10px] uppercase tracking-wider p-0"
+                                  >
+                                    {slice.label}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      const newBlocks = [...activePage.blocks];
+                                      const slices = [...newBlocks[activeBlockIndex].slices];
+                                      slices.splice(si, 1);
+                                      if (slices.length > 0) {
+                                        const sumNonLast = slices.slice(0, -1).reduce((s, sl) => s + sl.percentage, 0);
+                                        slices[slices.length - 1].percentage = Math.max(0, 100 - sumNonLast);
+                                      }
+                                      newBlocks[activeBlockIndex].slices = slices;
+                                      handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                    }}
+                                    className="p-1 hover:bg-red-100 rounded-lg transition-colors text-gray-400 hover:text-red-500"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Porcentaje</span>
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          value={slice.percentage}
+                                          onChange={(e) => {
+                                            const newVal = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                            const newBlocks = [...activePage.blocks];
+                                            const slices = [...newBlocks[activeBlockIndex].slices];
+                                            slices[si] = { ...slices[si], percentage: newVal };
+                                            if (si !== slices.length - 1) {
+                                              const sumNonLast = slices.slice(0, -1).reduce((s, sl) => s + sl.percentage, 0);
+                                              slices[slices.length - 1].percentage = Math.max(0, 100 - sumNonLast);
+                                            }
+                                            newBlocks[activeBlockIndex].slices = slices;
+                                            handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                          }}
+                                          className="w-12 text-center text-[10px] font-black text-gray-700 bg-white border border-gray-200 rounded-lg p-0.5 outline-none focus:border-emerald-400"
+                                        />
+                                        <span className="text-[10px] font-black text-gray-400">%</span>
+                                      </div>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min="0"
+                                      max="100"
+                                      step="1"
+                                      value={slice.percentage}
+                                      onChange={(e) => {
+                                        const newVal = parseInt(e.target.value);
+                                        const newBlocks = [...activePage.blocks];
+                                        const slices = [...newBlocks[activeBlockIndex].slices];
+                                        slices[si] = { ...slices[si], percentage: newVal };
+                                        if (si !== slices.length - 1) {
+                                          const sumNonLast = slices.slice(0, -1).reduce((s, sl) => s + sl.percentage, 0);
+                                          slices[slices.length - 1].percentage = Math.max(0, 100 - sumNonLast);
+                                        }
+                                        newBlocks[activeBlockIndex].slices = slices;
+                                        handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                      }}
+                                      className="w-full h-1.5 bg-gray-200 rounded-full appearance-none cursor-pointer accent-emerald-500"
+                                    />
+                                  </div>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setActiveColorPicker(activeColorPicker === `pie-slice-${si}` ? null : `pie-slice-${si}`)}
+                                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center"
+                                      style={{ backgroundColor: slice.color }}
+                                    >
+                                      {activeColorPicker === `pie-slice-${si}` && <Palette className="w-3 h-3 text-white mix-blend-difference" />}
+                                    </button>
+                                    {activeColorPicker === `pie-slice-${si}` && (
+                                      <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 min-w-[160px]">
+                                        <div className="grid grid-cols-4 gap-1.5 mb-1.5">
+                                          {['#ccff00','#4a8df8','#003399','#f97316','#a855f7','#22c55e','#ef4444','#06b6d4','#eab308','#ec4899','#14b8a6','#8b5cf6','#f43f5e','#0ea5e9','#84cc16','#64748b'].map((color) => (
+                                            <button
+                                              key={color}
+                                              onClick={() => {
+                                                const newBlocks = [...activePage.blocks];
+                                                const slices = [...newBlocks[activeBlockIndex].slices];
+                                                slices[si] = { ...slices[si], color };
+                                                newBlocks[activeBlockIndex].slices = slices;
+                                                handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                                setActiveColorPicker(null);
+                                              }}
+                                              className="w-7 h-7 rounded-lg border border-gray-100 transition-transform active:scale-90"
+                                              style={{ backgroundColor: color }}
+                                            >
+                                              {slice.color === color && <Check className="w-3 h-3 mx-auto text-white mix-blend-difference" />}
+                                            </button>
+                                          ))}
+                                        </div>
+                                        <label className="flex items-center justify-center gap-1.5 p-1 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                                          <Palette className="w-3 h-3 text-gray-400" />
+                                          <span className="text-[7px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                          <input
+                                            type="color"
+                                            className="hidden"
+                                            value={slice.color}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => {
+                                              const newBlocks = [...activePage.blocks];
+                                              const slices = [...newBlocks[activeBlockIndex].slices];
+                                              slices[si] = { ...slices[si], color: e.target.value };
+                                              newBlocks[activeBlockIndex].slices = slices;
+                                              handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                              setActiveColorPicker(null);
+                                            }}
+                                          />
+                                        </label>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between bg-gray-50 p-5 rounded-3xl">
+                          <div>
+                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest block">Tabla de Rangos</span>
+                            <span className="text-[8px] font-bold text-gray-400 uppercase">Mostrar tabla debajo del gráfico</span>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newBlocks = [...activePage.blocks];
+                              newBlocks[activeBlockIndex].showTable = newBlocks[activeBlockIndex].showTable === false ? true : false;
+                              handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                            }}
+                            className={`w-14 h-7 rounded-full transition-all relative ${activePage.blocks[activeBlockIndex].showTable !== false ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                          >
+                            <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-md transition-all ${activePage.blocks[activeBlockIndex].showTable !== false ? 'right-1' : 'left-1'}`} />
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <FieldLabel>Filas de la Tabla</FieldLabel>
+                            <button
+                              onClick={() => {
+                                const newBlocks = [...activePage.blocks];
+                                const td = [...(newBlocks[activeBlockIndex].tableData || [])];
+                                td.push({ calc: '0% - 0%', desc: 'NUEVA DESCRIPCIÓN' });
+                                newBlocks[activeBlockIndex].tableData = td;
+                                handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                              }}
+                              className="p-1 hover:bg-emerald-50 rounded-lg transition-colors text-gray-400 hover:text-emerald-500"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="space-y-1.5">
+                            {(activePage.blocks[activeBlockIndex].tableData || []).map((row, ri) => (
+                              <div key={ri} className="bg-gray-50 p-2 rounded-2xl flex items-start gap-2">
+                                <div className="flex-1 space-y-1">
+                                  <input
+                                    value={row.calc}
+                                    onChange={(e) => {
+                                      const newBlocks = [...activePage.blocks];
+                                      const td = [...newBlocks[activeBlockIndex].tableData];
+                                      td[ri] = { ...td[ri], calc: e.target.value };
+                                      newBlocks[activeBlockIndex].tableData = td;
+                                      handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                    }}
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1 text-[9px] font-black text-gray-700 uppercase tracking-wider outline-none focus:border-emerald-400"
+                                    placeholder="Ej: 20% - 30%"
+                                  />
+                                  <input
+                                    value={row.desc}
+                                    onChange={(e) => {
+                                      const newBlocks = [...activePage.blocks];
+                                      const td = [...newBlocks[activeBlockIndex].tableData];
+                                      td[ri] = { ...td[ri], desc: e.target.value };
+                                      newBlocks[activeBlockIndex].tableData = td;
+                                      handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                    }}
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-1 text-[8px] font-bold text-gray-600 uppercase tracking-wider outline-none focus:border-emerald-400"
+                                    placeholder="Descripción"
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const newBlocks = [...activePage.blocks];
+                                    const td = [...newBlocks[activeBlockIndex].tableData];
+                                    td.splice(ri, 1);
+                                    newBlocks[activeBlockIndex].tableData = td;
+                                    handleUpdatePage(activePageIndex, 'blocks', newBlocks);
+                                  }}
+                                  className="p-1 hover:bg-red-100 rounded-lg transition-colors text-gray-400 hover:text-red-500 mt-1"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="h-px bg-gray-100" />
+                      </div>
+                    )}
+
+                    {/* Ancho del Bloque */}
+                    {activePage.blocks[activeBlockIndex].type !== 'title' && activePage.blocks[activeBlockIndex].type !== 'piechart' && (
                     <div className="space-y-3">
                       <FieldLabel>Ancho del Bloque</FieldLabel>
                       <div className="bg-gray-50 p-4 rounded-3xl">
@@ -1003,47 +1334,51 @@ export default function InformeBuilder() {
                      </div>
                    )}
  
-                       {/* Estilo de Texto (Formato Parcial) */}
-                       <div className="space-y-4">
-                         <FieldLabel>Formato de Texto</FieldLabel>
-                         <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem] gap-1">
-                           <button 
-                             onMouseDown={(e) => {
-                               e.preventDefault();
-                               document.execCommand('bold', false);
-                             }}
-                             className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${ selectionFormat.bold ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50' }`}
-                             title="Negrita"
-                           >
-                             <Bold className="w-4 h-4" />
-                           </button>
-                           <button 
-                             onMouseDown={(e) => {
-                               e.preventDefault();
-                               document.execCommand('italic', false);
-                             }}
-                             className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${ selectionFormat.italic ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50' }`}
-                             title="Cursiva"
-                           >
-                             <Italic className="w-4 h-4" />
-                           </button>
-                           <button 
-                             onMouseDown={(e) => {
-                               e.preventDefault();
-                               document.execCommand('insertUnorderedList', false);
-                             }}
-                             className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${ selectionFormat.list ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50' }`}
-                             title="Lista"
-                           >
-                             <List className="w-4 h-4" />
-                           </button>
-                         </div>
-                         <p className="text-[8px] font-bold text-gray-400 uppercase text-center">Selecciona texto en el editor para aplicar formato</p>
-                       </div>
+{activePage.blocks[activeBlockIndex].type !== 'piechart' && (
+                        <>
+                        {/* Estilo de Texto (Formato Parcial) */}
+                        <div className="space-y-4">
+                          <FieldLabel>Formato de Texto</FieldLabel>
+                          <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem] gap-1">
+                            <button 
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                document.execCommand('bold', false);
+                              }}
+                              className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${ selectionFormat.bold ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50' }`}
+                              title="Negrita"
+                            >
+                              <Bold className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                document.execCommand('italic', false);
+                              }}
+                              className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${ selectionFormat.italic ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50' }`}
+                              title="Cursiva"
+                            >
+                              <Italic className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                document.execCommand('insertUnorderedList', false);
+                              }}
+                              className={`flex-1 py-3 rounded-xl flex items-center justify-center transition-all ${ selectionFormat.list ? 'bg-white shadow-md text-emerald-600' : 'text-gray-400 hover:text-emerald-600 hover:bg-white/50' }`}
+                              title="Lista"
+                            >
+                              <List className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <p className="text-[8px] font-bold text-gray-400 uppercase text-center">Selecciona texto en el editor para aplicar formato</p>
+                        </div>
+                        </>
+)}
 
-                       {activePage.blocks[activeBlockIndex].type !== 'title' && (
-                         <div className="space-y-3">
-                           <FieldLabel>Tamaño Cuerpo de Texto</FieldLabel>
+{activePage.blocks[activeBlockIndex].type !== 'title' && activePage.blocks[activeBlockIndex].type !== 'piechart' && (
+                          <div className="space-y-3">
+                            <FieldLabel>Tamaño Cuerpo de Texto</FieldLabel>
                            <div className="bg-gray-50 p-4 rounded-3xl">
                              <input
                                type="range"
@@ -1407,7 +1742,6 @@ export default function InformeBuilder() {
                   { id: 'SITUACION_ACTUAL', name: 'Situación Actual', desc: 'Resumen visual con fotos y observaciones.', icon: ImageIcon, color: 'amber' },
                   { id: 'DINAMICA', name: 'Página Dinámica', desc: 'Bloques flexibles de texto e imágenes.', icon: Layers, color: 'purple' },
                   { id: 'TEXTO_FOTOS', name: 'Contenido Mixto', desc: 'Texto clásico con galería de fotos.', icon: Type, color: 'rose' },
-                  { id: 'ANALISIS_SUELO', name: 'Análisis de Suelo', desc: 'Gráficos técnicos y resultados.', icon: PieChart, color: 'indigo' },
                 ].filter(item => {
                   // Caratula y Ubicación son siempre obligatorias/visibles
                   if (['CARATULA', 'UBICACION'].includes(item.id)) return true;
