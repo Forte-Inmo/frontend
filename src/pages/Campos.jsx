@@ -182,6 +182,7 @@ export default function Campos() {
     uso: 'ambos',
     tipo: '',
     tipo_personalizado: '',
+    operacion: '',
     provincia: '',
     departamento: '',
     descripcion: '',
@@ -244,6 +245,7 @@ export default function Campos() {
         superficie_total: formData.superficie_total,
         tipo: formData.tipo || null,
         tipo_personalizado: formData.tipo_personalizado || null,
+        operacion: formData.operacion || null,
         provincia: formData.provincia,
         departamento: formData.departamento,
         latitud: formData.latitud,
@@ -466,6 +468,13 @@ export default function Campos() {
                         : (campo.tipo || '—')}
                     </span>
                   </div>
+                  <div className="h-px bg-gray-50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-semibold">Operación</span>
+                    <span className="text-sm font-black text-gray-800 truncate max-w-[120px] text-right capitalize">
+                      {campo.operacion === 'venta' ? 'Venta' : campo.operacion === 'alquiler' ? 'Alquiler' : '—'}
+                    </span>
+                  </div>
                 </div>
 
                 <button
@@ -570,6 +579,17 @@ export default function Campos() {
                       />
                     </div>
                   )}
+                </div>
+                <div>
+                  <FieldLabel>Tipo de Operación</FieldLabel>
+                  <SelectInput
+                    value={formData.operacion}
+                    onChange={set('operacion')}
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="venta">Venta</option>
+                    <option value="alquiler">Alquiler</option>
+                  </SelectInput>
                 </div>
               </SectionCard>
 
