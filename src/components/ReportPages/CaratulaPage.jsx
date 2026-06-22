@@ -63,16 +63,24 @@ export default function CaratulaPage({
   );
 
   // Formatear el tipo de explotación del campo
-  const getSubtitulo = () => {
+  const getSubtituloAuto = () => {
     const partes = [];
-    const uso = campoMetadata?.uso?.toLowerCase();
-    if (uso === 'agricultura') partes.push('AGRÍCOLA');
-    else if (uso === 'ganaderia') partes.push('GANADERO');
-    else if (uso === 'ambos') partes.push('AGRÍCOLA - GANADERO');
+    const tipo = campoMetadata?.tipo?.toLowerCase();
+    if (tipo === 'agricola') partes.push('AGRÍCOLA');
+    else if (tipo === 'ganadero') partes.push('GANADERO');
+    else if (tipo === 'mixto') partes.push('MIXTO');
+    else if (tipo === 'coto de caza') partes.push('COTO DE CAZA');
+    else if (tipo === 'otro' && campoMetadata?.tipo_personalizado) partes.push(campoMetadata.tipo_personalizado.toUpperCase());
+    else {
+      const uso = campoMetadata?.uso?.toLowerCase();
+      if (uso === 'agricultura') partes.push('AGRÍCOLA');
+      else if (uso === 'ganaderia') partes.push('GANADERO');
+      else if (uso === 'ambos') partes.push('AGRÍCOLA - GANADERO');
+    }
     const operacion = campoMetadata?.operacion;
     if (operacion === 'venta') partes.push('EN VENTA');
     else if (operacion === 'alquiler') partes.push('EN ALQUILER');
-    return partes.join(' • ') || page.subtitulo || 'EXPLOTACIÓN AGROPECUARIA';
+    return partes.join(' • ') || 'EXPLOTACIÓN AGROPECUARIA';
   };
 
 
@@ -130,12 +138,22 @@ export default function CaratulaPage({
             />
           </div>
 
-          {/* Subtitulo (No editable - Viene del Campo) */}
+          {/* Subtitulo */}
           <div className="w-full mt-2">
             <div
-              className="w-full text-[24px] font-bold text-center p-2 uppercase text-white tracking-[0.2em]"
+              contentEditable={isEditMode}
+              suppressContentEditableWarning
+              onBlur={(e) => {
+                const val = e.currentTarget.innerText;
+                if (val === getSubtituloAuto()) {
+                  if (page.subtitulo) updatePage(pageIndex, 'subtitulo', '');
+                } else {
+                  updatePage(pageIndex, 'subtitulo', val);
+                }
+              }}
+              className="w-full text-[24px] font-bold text-center p-2 uppercase text-white tracking-[0.2em] outline-none"
             >
-              {getSubtitulo()}
+              {page.subtitulo || getSubtituloAuto()}
             </div>
           </div>
         </div>
