@@ -9,7 +9,7 @@ services:
         VITE_PDF_SERVICE_URL: /pdf-api
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "89:80"
     environment:
       - SUPABASE_URL=${VITE_SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
