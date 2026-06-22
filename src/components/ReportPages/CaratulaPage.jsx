@@ -64,11 +64,15 @@ export default function CaratulaPage({
 
   // Formatear el tipo de explotación del campo
   const getSubtitulo = () => {
+    const partes = [];
     const uso = campoMetadata?.uso?.toLowerCase();
-    if (uso === 'agricultura') return 'AGRÍCOLA';
-    if (uso === 'ganaderia') return 'GANADERO';
-    if (uso === 'ambos') return 'AGRÍCOLA - GANADERO';
-    return page.subtitulo || 'EXPLOTACIÓN AGROPECUARIA';
+    if (uso === 'agricultura') partes.push('AGRÍCOLA');
+    else if (uso === 'ganaderia') partes.push('GANADERO');
+    else if (uso === 'ambos') partes.push('AGRÍCOLA - GANADERO');
+    const operacion = campoMetadata?.operacion;
+    if (operacion === 'venta') partes.push('EN VENTA');
+    else if (operacion === 'alquiler') partes.push('EN ALQUILER');
+    return partes.join(' • ') || page.subtitulo || 'EXPLOTACIÓN AGROPECUARIA';
   };
 
 
@@ -113,7 +117,7 @@ export default function CaratulaPage({
             {isLockedByOther(`page_${page.id}_titulo`) && <LockBadge userName={activeLocks[`page_${page.id}_titulo`].userName} />}
             <textarea
               ref={titleRef}
-              value={page.titulo || 'CAMPO EN VENTA'}
+              value={page.titulo || (campoMetadata?.operacion === 'alquiler' ? 'CAMPO EN ALQUILER' : 'CAMPO EN VENTA')}
               onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
               onFocus={() => acquireLock(`page_${page.id}_titulo`)}
               onBlur={releaseLock}
