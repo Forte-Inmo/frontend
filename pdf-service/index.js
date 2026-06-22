@@ -212,7 +212,8 @@ async function processJob(job) {
     await countPage.setViewport({ width: 794, height: 1123 });
     await countPage.emulateMediaType('screen');
     t('Navegando para conteo...');
-    await countPage.goto(job.url, { waitUntil: 'networkidle2', timeout: 30000 });
+    const countUrl = `${job.url}${job.url.includes('?') ? '&' : '?'}count=1`;
+    await countPage.goto(countUrl, { waitUntil: 'networkidle2', timeout: 30000 });
     await countPage.waitForFunction('document.fonts.ready', { timeout: 10000 });
     await countPage.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
     await countPage.waitForNetworkIdle({ idleTime: 500 });

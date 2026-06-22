@@ -59,22 +59,10 @@ export default function RenderPage() {
         return;
       }
 
-      if (tokenData.used) {
-        setStatus('error');
-        return;
-      }
-
       const now = new Date();
       if (new Date(tokenData.expires_at) < now) {
         setStatus('error');
         return;
-      }
-
-      if (from == null && to == null) {
-        await supabase
-          .from('pdf_tokens')
-          .update({ used: true })
-          .eq('id', tokenData.id);
       }
 
       const { data: informeData, error: informeError } = await supabase
