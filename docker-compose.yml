@@ -9,7 +9,7 @@ services:
         VITE_PDF_SERVICE_URL: /pdf-api
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     networks:
       - dokploy-network
 
