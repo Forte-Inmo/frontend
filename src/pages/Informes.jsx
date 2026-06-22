@@ -223,15 +223,21 @@ export default function Informes() {
 
   const { exportPDF } = useExportPDF();
   const [exportingId, setExportingId] = useState(null);
+  const [exportProgress, setExportProgress] = useState(null);
 
   const handleExport = async (informe) => {
     setExportingId(informe.id);
+    setExportProgress({ stage: 'pending', progress: 0, logs: ['Iniciando...'], error: null });
     try {
       const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}.pdf`.replace(/\s+/g, '_');
-      await exportPDF({ informeId: informe.id, filename });
+      await exportPDF({
+        informeId: informe.id,
+        filename,
+        onProgress: (p) => setExportProgress(p),
+      });
     } catch (error) {
       console.error('Error exportando PDF:', error);
-      alert('Error generando PDF: ' + error.message);
+      setExportProgress(prev => ({ ...prev, stage: 'error', error: error.message, logs: [...(prev?.logs || []), 'ERROR: ' + error.message] }));
     } finally {
       setExportingId(null);
     }
@@ -539,6 +545,71 @@ export default function Informes() {
                   </a>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Progreso Export PDF ── */}
+      {exportProgress && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-xl">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                </div>
+                <span className="text-sm font-black text-gray-700">Exportar PDF</span>
+              </div>
+              <button
+                onClick={() => setExportProgress(null)}
+                className="p-2 hover:bg-gray-100 rounded-xl transition text-gray-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <span>{exportProgress.error ? 'Error' : exportProgress.stage === 'done' ? 'Completado' : 'Procesando...'}</span>
+                  <span>{exportProgress.progress}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      exportProgress.error ? 'bg-red-500' : 'bg-emerald-500'
+                    }`}
+                    style={{ width: `${exportProgress.progress}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-4 max-h-48 overflow-y-auto custom-scrollbar space-y-1">
+                {(exportProgress.logs || []).map((log, i) => (
+                  <div key={i} className={`text-[11px] font-mono leading-relaxed ${
+                    log.startsWith('ERROR') ? 'text-red-600 font-bold' : 'text-gray-600'
+                  }`}>
+                    {'> '}{log}
+                    {i === (exportProgress.logs || []).length - 1 && exportProgress.stage !== 'done' && exportProgress.stage !== 'error' && (
+                      <span className="inline-block w-2 h-4 bg-emerald-500 ml-1 animate-pulse" />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {(exportProgress.stage === 'done' || exportProgress.stage === 'error') && (
+                <button
+                  onClick={() => setExportProgress(null)}
+                  className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                    exportProgress.error
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  }`}
+                >
+                  {exportProgress.error ? 'Cerrar' : 'Cerrar'}
+                </button>
+              )}
             </div>
           </div>
         </div>
