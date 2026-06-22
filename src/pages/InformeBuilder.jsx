@@ -1748,7 +1748,7 @@ export default function InformeBuilder() {
                   // Para las demás, verificamos settings. Si no hay settings o el campo no existe, asumimos true
                   return settings?.enabled_pages?.[item.id] !== false;
                 }).map((item) => (
-                  <button key={item.id} onClick={() => addPage(item.id)} className="group flex flex-col bg-gray-50 hover:bg-white rounded-[32px] border border-gray-100 hover:border-emerald-200 p-6 transition-all hover:shadow-xl text-left active:scale-[0.98]">
+                  <button key={item.id} onClick={() => addPage(item.id, campoMetadata)} className="group flex flex-col bg-gray-50 hover:bg-white rounded-[32px] border border-gray-100 hover:border-emerald-200 p-6 transition-all hover:shadow-xl text-left active:scale-[0.98]">
                     <div className={`w-14 h-14 rounded-2xl bg-${item.color}-100 text-${item.color}-600 flex items-center justify-center mb-6`}><item.icon className="w-7 h-7" /></div>
                     <h4 className="text-lg font-black text-gray-900 uppercase mb-2">{item.name}</h4>
                     <p className="text-xs font-medium text-gray-500 leading-relaxed mb-6">{item.desc}</p>

@@ -123,10 +123,13 @@ export function usePageEditor({ id, saveFn }) {
     });
   }, [recordMutation]);
 
-  const addPage = useCallback((type) => {
+  const addPage = useCallback((type, campo) => {
     let defaultData = {};
     if (type === 'CARATULA') {
-      defaultData = { titulo: 'INFORME TÉCNICO', subtitulo: '' };
+      defaultData = {
+        titulo: campo?.operacion === 'alquiler' ? 'CAMPO EN ALQUILER' : 'CAMPO EN VENTA',
+        subtitulo: ''
+      };
     } else if (type === 'UBICACION') {
       defaultData = {
         lat: -34.6037, lng: -58.3816, zoom: 12,
