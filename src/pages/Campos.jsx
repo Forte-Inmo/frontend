@@ -180,6 +180,8 @@ export default function Campos() {
     alias_comercial: '',
     superficie_total: '',
     uso: 'ambos',
+    tipo: '',
+    tipo_personalizado: '',
     provincia: '',
     departamento: '',
     descripcion: '',
@@ -240,11 +242,13 @@ export default function Campos() {
       const payload = {
         nombre: formData.nombre,
         superficie_total: formData.superficie_total,
+        tipo: formData.tipo || null,
+        tipo_personalizado: formData.tipo_personalizado || null,
         provincia: formData.provincia,
         departamento: formData.departamento,
         latitud: formData.latitud,
         longitud: formData.longitud,
-        coordenadas_poligono: formData.coordenadas_poligono, // Se guarda como JSON directo
+        coordenadas_poligono: formData.coordenadas_poligono,
         created_by: user?.id,
       };
 
@@ -453,6 +457,15 @@ export default function Campos() {
                       {campo.departamento || '—'}
                     </span>
                   </div>
+                  <div className="h-px bg-gray-50" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400 font-semibold">Tipo</span>
+                    <span className="text-sm font-black text-gray-800 truncate max-w-[120px] text-right capitalize">
+                      {campo.tipo === 'otro'
+                        ? (campo.tipo_personalizado || 'Otro')
+                        : (campo.tipo || '—')}
+                    </span>
+                  </div>
                 </div>
 
                 <button
@@ -532,6 +545,31 @@ export default function Campos() {
                       placeholder="Ej: 500"
                     />
                   </div>
+                </div>
+                <div>
+                  <FieldLabel>Tipo</FieldLabel>
+                  <SelectInput
+                    icon={Tractor}
+                    value={formData.tipo}
+                    onChange={set('tipo')}
+                  >
+                    <option value="">Seleccionar tipo...</option>
+                    <option value="agricola">Agrícola</option>
+                    <option value="ganadero">Ganadero</option>
+                    <option value="mixto">Mixto</option>
+                    <option value="coto de caza">Coto de Caza</option>
+                    <option value="otro">Otro</option>
+                  </SelectInput>
+                  {formData.tipo === 'otro' && (
+                    <div className="mt-3">
+                      <TextInput
+                        type="text"
+                        value={formData.tipo_personalizado}
+                        onChange={set('tipo_personalizado')}
+                        placeholder="Especificar tipo..."
+                      />
+                    </div>
+                  )}
                 </div>
               </SectionCard>
 
