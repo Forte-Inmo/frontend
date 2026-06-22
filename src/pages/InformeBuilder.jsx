@@ -51,7 +51,8 @@ export default function InformeBuilder() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
-  const { exportPDF } = useExportPDF();
+  const { exportPDF, checkExistingExport } = useExportPDF();
+  const [existingExport, setExistingExport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [informe, setInforme] = useState(null);
   const { settings } = useSettings();
@@ -167,6 +168,14 @@ export default function InformeBuilder() {
     }
   }, [loading, pagesData.length, searchParams, informe, campoMetadata]);
 
+  useEffect(() => {
+    if (id && !loading) {
+      checkExistingExport(id).then(result => {
+        if (result.exists) setExistingExport(result);
+      }).catch(() => {});
+    }
+  }, [id, loading]);
+
   const acquireLock = (fieldPath) => {};
   const releaseLock = () => {};
   const isLockedByOther = (fieldPath) => false;
@@ -268,6 +277,22 @@ export default function InformeBuilder() {
             {saveStatus === 'saving' && <span className="text-amber-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> Guardando...</span>}
           </div>
 
+          {existingExport ? (
+            <div className="flex items-center gap-2">
+              <a
+                href={existingExport.signedUrl || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest shadow-sm"
+              >
+                <Download className="w-4 h-4" /> Descargar PDF
+              </a>
+            </div>
+          ) : (
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4">
+              Sin exportaciones
+            </div>
+          )}
           <button 
             onClick={() => navigate('/dashboard/informes')}
             className="flex items-center gap-2 px-6 py-2.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-100 hover:border-red-500 shadow-sm group"

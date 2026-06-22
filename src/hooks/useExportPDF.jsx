@@ -8,7 +8,7 @@ function generateToken() {
 }
 
 export function useExportPDF() {
-  const exportPDF = async ({ informeId, filename, onProgress }) => {
+  const exportPDF = async ({ informeId, filename, onProgress, informeTitle }) => {
     const token = generateToken();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -29,6 +29,8 @@ export function useExportPDF() {
     const { data: { session } } = await supabase.auth.getSession();
     const accessToken = session?.access_token || '';
     const refreshToken = session?.refresh_token || '';
+    const userEmail = session?.user?.email || '';
+    const userId = session?.user?.id || '';
     const renderUrl = `${window.location.origin}/render/${informeId}?token=${token}&access_token=${encodeURIComponent(accessToken)}&refresh_token=${encodeURIComponent(refreshToken)}`;
 
     const baseUrl = import.meta.env.VITE_PDF_SERVICE_URL;
@@ -36,7 +38,13 @@ export function useExportPDF() {
     const response = await fetch(`${baseUrl}/generate-pdf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: renderUrl }),
+      body: JSON.stringify({
+        url: renderUrl,
+        informeId,
+        userId,
+        userEmail,
+        informeTitle: informeTitle || filename || 'Informe',
+      }),
     });
 
     if (!response.ok) {
@@ -44,7 +52,7 @@ export function useExportPDF() {
       throw new Error('Error generando PDF: ' + err);
     }
 
-    const { jobId } = await response.json();
+    const { jobId, exportId } = await response.json();
     if (!jobId) throw new Error('No se recibió jobId del servicio PDF');
 
     let done = false;
@@ -78,7 +86,7 @@ export function useExportPDF() {
         a.download = filename || 'informe.pdf';
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
-        return;
+        return exportId;
       }
 
       if (status.stage === 'error') {
@@ -89,5 +97,27 @@ export function useExportPDF() {
     if (!done) throw new Error('Tiempo de espera agotado (120s)');
   };
 
-  return { exportPDF };
+  const checkExistingExport = async (informeId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return { exists: false };
+
+    const baseUrl = import.meta.env.VITE_PDF_SERVICE_URL;
+    const res = await fetch(`${baseUrl}/check-existing/${informeId}/${userId}`);
+    if (!res.ok) return { exists: false };
+    return res.json();
+  };
+
+  const getExports = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return [];
+
+    const baseUrl = import.meta.env.VITE_PDF_SERVICE_URL;
+    const res = await fetch(`${baseUrl}/exports/${userId}`);
+    if (!res.ok) return [];
+    return res.json();
+  };
+
+  return { exportPDF, checkExistingExport, getExports };
 }

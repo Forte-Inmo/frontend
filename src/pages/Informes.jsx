@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import {
   FileText, Plus, Search, Calendar, MapPin,
   ChevronRight, Trash2, Clock, X, Save,
-  Layers, AlertCircle, Download, Loader2, History
+  Layers, AlertCircle, Download, Loader2, History, Mail
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useExportPDF } from '../hooks/useExportPDF';
@@ -74,6 +74,10 @@ export default function Informes() {
   const [versionesModal, setVersionesModal] = useState(null);
   const [versiones, setVersiones] = useState([]);
   const [loadingVersiones, setLoadingVersiones] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('informes');
+  const [exports, setExports] = useState([]);
+  const [loadingExports, setLoadingExports] = useState(false);
 
   const handleVerVersiones = async (informe) => {
     setVersionesModal(informe.id);
@@ -221,7 +225,7 @@ export default function Informes() {
     i.campos?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const { exportPDF } = useExportPDF();
+  const { exportPDF, checkExistingExport, getExports } = useExportPDF();
   const [exportingId, setExportingId] = useState(null);
   const [exportProgress, setExportProgress] = useState(null);
 
@@ -233,8 +237,12 @@ export default function Informes() {
       await exportPDF({
         informeId: informe.id,
         filename,
+        informeTitle: `${informe.titulo || 'Informe'} - ${informe.campos?.nombre || 'Terreno'}`,
         onProgress: (p) => setExportProgress(p),
       });
+      if (activeTab === 'exportaciones') {
+        loadExports();
+      }
     } catch (error) {
       console.error('Error exportando PDF:', error);
       setExportProgress(prev => ({ ...prev, stage: 'error', error: error.message, logs: [...(prev?.logs || []), 'ERROR: ' + error.message] }));
@@ -242,6 +250,24 @@ export default function Informes() {
       setExportingId(null);
     }
   };
+
+  const loadExports = async () => {
+    setLoadingExports(true);
+    try {
+      const data = await getExports();
+      setExports(data || []);
+    } catch (e) {
+      console.error('Error loading exports:', e);
+    } finally {
+      setLoadingExports(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'exportaciones') {
+      loadExports();
+    }
+  }, [activeTab]);
 
   const camposDisponibles = campos.filter(campo =>
     !informes.some(inf => inf.campo_id === campo.id)
@@ -305,8 +331,122 @@ export default function Informes() {
         </div>
       </div>
 
-      {/* ── Informes List ── */}
-      {loading ? (
+      {/* ── Tabs ── */}
+      <div className="flex gap-1 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm w-fit">
+        <button
+          onClick={() => setActiveTab('informes')}
+          className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+            activeTab === 'informes'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5 inline mr-2 -mt-0.5" />
+          Informes
+        </button>
+        <button
+          onClick={() => setActiveTab('exportaciones')}
+          className={`px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+            activeTab === 'exportaciones'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200'
+              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50'
+          }`}
+        >
+          <History className="w-3.5 h-3.5 inline mr-2 -mt-0.5" />
+          Exportaciones
+        </button>
+      </div>
+
+      {/* ── Tab: Exportaciones ── */}
+      {activeTab === 'exportaciones' && (
+        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/60 flex items-center justify-between">
+            <h3 className="text-sm font-black text-gray-700 tracking-tight">Historial de Exportaciones</h3>
+            {exports.length > 0 && (
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{exports.length} exportaciones</span>
+            )}
+          </div>
+          <div className="p-4">
+            {loadingExports ? (
+              <div className="space-y-3 p-4">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-16 bg-gray-50 rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : exports.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-100">
+                <Mail className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm font-black text-gray-400 uppercase tracking-wide">Ninguna exportación aún</p>
+                <p className="text-xs text-gray-400 mt-1 font-medium">Las exportaciones aparecerán aquí y recibirás un email cuando estén listas.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {exports.map(exp => {
+                  const informe = informes.find(i => i.id === exp.informe_id);
+                  return (
+                    <div key={exp.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-emerald-50/50 transition-colors border border-transparent hover:border-emerald-100">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          exp.status === 'done' ? 'bg-emerald-100 text-emerald-600' :
+                          exp.status === 'error' ? 'bg-red-100 text-red-600' :
+                          'bg-amber-100 text-amber-600'
+                        }`}>
+                          {exp.status === 'done' ? <Download className="w-5 h-5" /> :
+                           exp.status === 'error' ? <AlertCircle className="w-5 h-5" /> :
+                           <Loader2 className="w-5 h-5 animate-spin" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-gray-800 truncate">
+                            {informe?.titulo || 'Informe'}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-wide mt-0.5">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(exp.created_at).toLocaleDateString('es-AR', {
+                              day: '2-digit', month: 'short', year: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                          exp.status === 'done' ? 'bg-emerald-100 text-emerald-700' :
+                          exp.status === 'error' ? 'bg-red-100 text-red-700' :
+                          exp.status === 'cmyk' || exp.status === 'rendering' ? 'bg-blue-100 text-blue-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {exp.status === 'done' ? 'Listo' :
+                           exp.status === 'error' ? 'Error' :
+                           exp.status === 'rendering' ? 'Renderizando' :
+                           exp.status === 'cmyk' ? 'Procesando' : 'Pendiente'}
+                        </div>
+                        {exp.status === 'done' && (
+                          <a
+                            href={exp.signedUrl || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-sm"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Descargar
+                          </a>
+                        )}
+                        {exp.status === 'error' && (
+                          <span className="text-[10px] text-red-500 font-bold max-w-[200px] truncate" title={exp.error}>
+                            {exp.error}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab: Informes List ── */}
+      {activeTab === 'informes' && (loading ? (
         <div className="space-y-4">
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-white h-24 rounded-[2rem] animate-pulse border border-gray-100 shadow-sm"></div>
@@ -389,7 +529,7 @@ export default function Informes() {
             </button>
           )}
         </div>
-      )}
+      ))}
 
       {/* ── Slide-over Panel (Floating Style) ── */}
       {isModalOpen && (
