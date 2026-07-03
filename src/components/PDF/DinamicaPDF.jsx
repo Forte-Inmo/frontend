@@ -169,6 +169,10 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
               const headerText = td.headerTextColor || '#ffffff';
               const altRow = td.alternateRowColor || '#f4f4f5';
               const cellPadding = 6;
+              const hasAnyWidth = td.columns.some(c => c.width != null);
+              const totalWidth = td.columns.reduce((s, c) => s + (c.width || 0), 0);
+              const autoCount = td.columns.filter(c => c.width == null).length;
+              const autoFlex = hasAnyWidth && autoCount > 0 ? Math.max(0, 100 - totalWidth) / autoCount : 0;
               return (
                 <View key={block.id || idx} style={[styles.blockContent, {
                   backgroundColor: bgColor,
@@ -185,7 +189,7 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
                   <View style={{ flexDirection: 'row', borderLeftWidth: 1, borderLeftColor: tableBorderColor, borderRightWidth: 1, borderRightColor: tableBorderColor, borderTopWidth: 1, borderTopColor: tableBorderColor }}>
                     {td.columns.map((col, ci) => (
                       <View key={col.id} style={{
-                        flex: 1,
+                        flex: col.width || autoFlex || 1,
                         backgroundColor: headerBg,
                         padding: cellPadding,
                         borderRightWidth: ci < td.columns.length - 1 ? 1 : 0,
@@ -207,7 +211,7 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
                     }}>
                       {td.columns.map((col, ci) => (
                         <View key={col.id} style={{
-                          flex: 1,
+                          flex: col.width || autoFlex || 1,
                           padding: cellPadding,
                           borderRightWidth: ci < td.columns.length - 1 ? 1 : 0,
                           borderRightColor: tableBorderColor,

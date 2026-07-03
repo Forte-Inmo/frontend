@@ -60,6 +60,8 @@ export default function DinamicaPage({
     dark: '#001a4d'
   };
   const [dragState, setDragState] = useState({ isDragging: false, startY: 0, startOffset: 0, blockIdx: null });
+  const [colResize, setColResize] = useState(null);
+  const [previewWidths, setPreviewWidths] = useState({});
   const [showAddMenu, setShowAddMenu] = useState(false);
   const addMenuRef = useRef(null);
 
@@ -124,6 +126,45 @@ export default function DinamicaPage({
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [dragState, pageIndex, updatePage, blocks]);
+
+  useEffect(() => {
+    if (!colResize) return;
+    const handleMouseMove = (e) => {
+      const delta = e.clientX - colResize.startX;
+      const newPx = Math.max(40, colResize.startWidth + delta);
+      const newPct = Math.min(100, Math.round((newPx / colResize.tableWidth) * 100));
+      setPreviewWidths(p => ({ ...p, [colResize.colId]: newPct }));
+    };
+    const handleMouseUp = (e) => {
+      const delta = e.clientX - colResize.startX;
+      const newPx = Math.max(40, colResize.startWidth + delta);
+      const newPct = Math.min(100, Math.round((newPx / colResize.tableWidth) * 100));
+      const newBlocks = [...(page.blocks || [])];
+      const block = newBlocks[colResize.blockIdx];
+      if (block && block.tableData) {
+        const td = { ...block.tableData, columns: [...block.tableData.columns] };
+        const col = td.columns.find(c => c.id === colResize.colId);
+        if (col) {
+          col.width = Math.max(5, newPct);
+        }
+        newBlocks[colResize.blockIdx] = { ...block, tableData: td };
+        updatePage(pageIndex, 'blocks', newBlocks);
+      }
+      setColResize(null);
+      setPreviewWidths({});
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [colResize, pageIndex, updatePage, page.blocks]);
+
   const updateBlock = (blockIndex, field, value) => {
     const newBlocks = [...(page.blocks || [])];
     newBlocks[blockIndex] = { ...newBlocks[blockIndex], [field]: value };
@@ -501,171 +542,203 @@ export default function DinamicaPage({
                        );
                      })()}
                    </div>
-               ) : block.type === 'table' ? (
-                <div className="overflow-x-auto w-full">
-                  <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 14, color: block.textColor, backgroundColor: block.variant === 'transparent' ? 'transparent' : (block.bgColor || '#ffffff') }}>
-                    <thead>
-                      <tr>
-                        {/* spacer columna para botón eliminar fila (siempre presente para alinear con tbody) */}
-                        <th
-                          style={{
-                            border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
-                            padding: isEditMode ? '4px' : 0,
-                            width: 32,
-                            backgroundColor: block.tableData.headerBgColor || brandColors.primary,
-                          }}
-                        >
-                          {isEditMode && (
-                            <button
-                              onClick={() => {
-                                const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
-                                const newId = `c${Date.now()}`;
-                                td.columns.push({ id: newId, header: `Columna ${td.columns.length + 1}` });
-                                td.rows = td.rows.map(r => ({
-                                  ...r,
-                                  cells: { ...r.cells, [newId]: '' },
-                                }));
-                                updateBlock(idx, 'tableData', td);
-                              }}
-                              className="text-white/80 hover:text-white transition-colors"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          )}
-                        </th>
-                        {block.tableData.columns.map((col, ci) => (
-                          <th
-                            key={col.id}
-                            style={{
-                              backgroundColor: block.tableData.headerBgColor || brandColors.primary,
-                              color: block.tableData.headerTextColor || '#ffffff',
-                              border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
-                              padding: '10px 12px',
-                              fontWeight: 900,
-                              fontSize: 13,
-                              textAlign: 'left',
-                              position: 'relative',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                contentEditable={isEditMode}
-                                suppressContentEditableWarning
-                                onBlur={(e) => {
-                                  const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
-                                  td.columns[ci] = { ...td.columns[ci], header: e.currentTarget.innerText };
-                                  updateBlock(idx, 'tableData', td);
-                                }}
-                                className="outline-none flex-1"
-                              >
-                                {col.header}
-                              </span>
-                              {isEditMode && (
-                                <button
-                                  onClick={() => {
-                                    const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
-                                    td.columns.splice(ci, 1);
-                                    td.rows = td.rows.map(r => {
-                                      const c = { ...r.cells };
-                                      delete c[col.id];
-                                      return { ...r, cells: c };
-                                    });
-                                    updateBlock(idx, 'tableData', td);
-                                  }}
-                                  className="text-white/60 hover:text-red-300 transition-colors shrink-0"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              )}
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {block.tableData.rows.map((row, ri) => (
-                        <tr
-                          key={row.id}
-                          style={{
-                            backgroundColor: block.variant === 'transparent' ? 'transparent' : (ri % 2 === 1 ? (block.tableData.alternateRowColor || '#f4f4f5') : (block.bgColor || '#ffffff')),
-                          }}
-                        >
-                          <td
-                            style={{
-                              border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
-                              padding: 0,
-                              width: 32,
-                              textAlign: 'center',
-                              verticalAlign: 'middle',
-                            }}
-                          >
-                            {isEditMode && (
-                              <button
-                                onClick={() => {
-                                  const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
-                                  td.rows.splice(ri, 1);
-                                  updateBlock(idx, 'tableData', td);
-                                }}
-                                className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            )}
-                          </td>
-                          {block.tableData.columns.map((col) => (
-                            <td
+                ) : block.type === 'table' ? (
+                 <div className="overflow-x-auto w-full">
+                   <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 14, color: block.textColor, tableLayout: 'fixed', backgroundColor: block.variant === 'transparent' ? 'transparent' : (block.bgColor || '#ffffff') }}>
+                     <thead>
+                       <tr>
+                         {/* spacer columna para botón eliminar fila (siempre presente para alinear con tbody) */}
+                         <th
+                           style={{
+                             border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                             padding: isEditMode ? '4px' : 0,
+                             width: 32,
+                             backgroundColor: block.tableData.headerBgColor || brandColors.primary,
+                           }}
+                         >
+                           {isEditMode && (
+                             <button
+                               onClick={() => {
+                                 const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                 const newId = `c${Date.now()}`;
+                                 td.columns.push({ id: newId, header: `Columna ${td.columns.length + 1}` });
+                                 td.rows = td.rows.map(r => ({
+                                   ...r,
+                                   cells: { ...r.cells, [newId]: '' },
+                                 }));
+                                 updateBlock(idx, 'tableData', td);
+                               }}
+                               className="text-white/80 hover:text-white transition-colors"
+                             >
+                               <Plus className="w-4 h-4" />
+                             </button>
+                           )}
+                         </th>
+                          {block.tableData.columns.map((col, ci) => {
+                            const colWidthPct = previewWidths[col.id] !== undefined ? previewWidths[col.id] : col.width;
+                            return (
+                            <th
                               key={col.id}
                               style={{
+                                backgroundColor: block.tableData.headerBgColor || brandColors.primary,
+                                color: block.tableData.headerTextColor || '#ffffff',
                                 border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
-                                padding: '8px 12px',
-                                fontWeight: 500,
+                                padding: '10px 12px',
+                                fontWeight: 900,
+                                fontSize: 13,
+                                textAlign: 'left',
+                                position: 'relative',
+                                 width: colWidthPct != null ? `${colWidthPct}%` : undefined,
+                                 overflowWrap: 'break-word',
                               }}
-                            >
-                              <span
-                                contentEditable={isEditMode}
-                                suppressContentEditableWarning
-                                onBlur={(e) => {
-                                  const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
-                                  td.rows[ri] = { ...td.rows[ri], cells: { ...td.rows[ri].cells, [col.id]: e.currentTarget.innerText } };
-                                  updateBlock(idx, 'tableData', td);
+                           >
+                             <div className="flex items-center gap-2">
+                               <span
+                                 contentEditable={isEditMode}
+                                 suppressContentEditableWarning
+                                 onBlur={(e) => {
+                                   const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                   td.columns[ci] = { ...td.columns[ci], header: e.currentTarget.innerText };
+                                   updateBlock(idx, 'tableData', td);
+                                 }}
+                                 className="outline-none flex-1"
+                               >
+                                 {col.header}
+                               </span>
+                               {isEditMode && (
+                                 <button
+                                   onClick={() => {
+                                     const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                     td.columns.splice(ci, 1);
+                                     td.rows = td.rows.map(r => {
+                                       const c = { ...r.cells };
+                                       delete c[col.id];
+                                       return { ...r, cells: c };
+                                     });
+                                     updateBlock(idx, 'tableData', td);
+                                   }}
+                                   className="text-white/60 hover:text-red-300 transition-colors shrink-0"
+                                 >
+                                   <X className="w-3 h-3" />
+                                 </button>
+                               )}
+                             </div>
+                             {isEditMode && (
+                               <div
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const th = e.currentTarget.parentElement;
+                                    const table = th.closest('table');
+                                    const thRect = th.getBoundingClientRect();
+                                    const tableRect = table.getBoundingClientRect();
+                                    const startPct = col.width || Math.round((thRect.width / tableRect.width) * 100);
+                                    setColResize({
+                                      colId: col.id,
+                                      blockIdx: idx,
+                                      startX: e.clientX,
+                                      startWidth: thRect.width,
+                                      tableWidth: tableRect.width,
+                                    });
+                                    setPreviewWidths(p => ({ ...p, [col.id]: startPct }));
+                                  }}
+                                 className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-10 hover:bg-white/30"
+                                 style={{ backgroundColor: 'transparent' }}
+                               >
+                                 <div className="w-1 h-full mx-auto" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                               </div>
+                             )}
+                           </th>
+                         );})}
+                       </tr>
+                     </thead>
+                     <tbody>
+                       {block.tableData.rows.map((row, ri) => (
+                         <tr
+                           key={row.id}
+                           style={{
+                             backgroundColor: block.variant === 'transparent' ? 'transparent' : (ri % 2 === 1 ? (block.tableData.alternateRowColor || '#f4f4f5') : (block.bgColor || '#ffffff')),
+                           }}
+                         >
+                           <td
+                             style={{
+                               border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                               padding: 0,
+                               width: 32,
+                               textAlign: 'center',
+                               verticalAlign: 'middle',
+                             }}
+                           >
+                             {isEditMode && (
+                               <button
+                                 onClick={() => {
+                                   const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                   td.rows.splice(ri, 1);
+                                   updateBlock(idx, 'tableData', td);
+                                 }}
+                                 className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                               >
+                                 <X className="w-3 h-3" />
+                               </button>
+                             )}
+                           </td>
+                            {block.tableData.columns.map((col) => {
+                              const colWidthPct = previewWidths[col.id] !== undefined ? previewWidths[col.id] : col.width;
+                              return (
+                              <td
+                                key={col.id}
+                                style={{
+                                  border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                                  padding: '8px 12px',
+                                  fontWeight: 500,
+                                  width: colWidthPct != null ? `${colWidthPct}%` : undefined,
                                 }}
-                                className="outline-none block min-h-[1em]"
                               >
-                                {row.cells[col.id] || ''}
-                              </span>
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                      {isEditMode && (
-                        <tr>
-                          <td
-                            colSpan={block.tableData.columns.length + 1}
-                            style={{
-                              border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
-                              padding: 4,
-                            }}
-                          >
-                            <button
-                              onClick={() => {
-                                const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
-                                const newId = `r${Date.now()}`;
-                                const cells = {};
-                                td.columns.forEach(c => { cells[c.id] = ''; });
-                                td.rows.push({ id: newId, cells });
-                                updateBlock(idx, 'tableData', td);
-                              }}
-                              className="w-full py-2 text-gray-400 hover:text-emerald-500 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Plus className="w-4 h-4" /> Añadir Fila
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                               <span
+                                 contentEditable={isEditMode}
+                                 suppressContentEditableWarning
+                                 onBlur={(e) => {
+                                   const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                   td.rows[ri] = { ...td.rows[ri], cells: { ...td.rows[ri].cells, [col.id]: e.currentTarget.innerText } };
+                                   updateBlock(idx, 'tableData', td);
+                                 }}
+                                 className="outline-none block min-h-[1em]"
+                               >
+                                 {row.cells[col.id] || ''}
+                               </span>
+                              </td>
+                            );
+                          })}
+                          </tr>
+                       ))}
+                       {isEditMode && (
+                         <tr>
+                           <td
+                             colSpan={block.tableData.columns.length + 1}
+                             style={{
+                               border: `1px solid ${block.tableData.borderColor || '#e5e4e7'}`,
+                               padding: 4,
+                             }}
+                           >
+                             <button
+                               onClick={() => {
+                                 const td = { ...block.tableData, columns: [...block.tableData.columns], rows: [...block.tableData.rows] };
+                                 const newId = `r${Date.now()}`;
+                                 const cells = {};
+                                 td.columns.forEach(c => { cells[c.id] = ''; });
+                                 td.rows.push({ id: newId, cells });
+                                 updateBlock(idx, 'tableData', td);
+                               }}
+                               className="w-full py-2 text-gray-400 hover:text-emerald-500 text-[10px] font-black uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                             >
+                               <Plus className="w-4 h-4" /> Añadir Fila
+                             </button>
+                           </td>
+                         </tr>
+                       )}
+                     </tbody>
+                   </table>
+                 </div>
               ) : (
                 <div className="relative w-full">
                    {block.type !== "title" && (
