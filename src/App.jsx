@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -17,8 +18,33 @@ import PermissionGuard from './components/PermissionGuard';
 
 import './App.css';
 
+const pageTitles = {
+  '/': 'Forte',
+  '/dashboard': 'Inicio',
+  '/dashboard/campos': 'Campos',
+  '/dashboard/informes': 'Informes',
+  '/dashboard/perfil': 'Perfil',
+  '/dashboard/ajustes': 'Ajustes',
+  '/dashboard/usuarios': 'Usuarios',
+  '/dashboard/roles': 'Roles',
+};
+
 function AppRoutes() {
   const { user } = useAuth();
+  const location = useLocation();
+
+  useEffect(() => {
+    const title = pageTitles[location.pathname];
+    if (title) {
+      document.title = `${title} - Forte`;
+    } else if (location.pathname.startsWith('/dashboard/builder/')) {
+      document.title = 'Builder - Forte';
+    } else if (location.pathname.startsWith('/dashboard/plantillas/')) {
+      document.title = 'Plantillas - Forte';
+    } else if (location.pathname.startsWith('/render/')) {
+      document.title = 'Render - Forte';
+    }
+  }, [location]);
 
   return (
     <Routes>

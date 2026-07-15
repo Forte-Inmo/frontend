@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Users, Mail, Search, X, Save, Shield, Edit3, RefreshCw } from 'lucide-react';
+import { Users, Mail, Search, X, Save, Shield, Edit3, RefreshCw, Plus, Lock, Eye, EyeOff, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 /* ─── UI Primitives ────────────────────────────────────────── */
@@ -36,7 +36,15 @@ function SectionCard({ icon: Icon, title, color = 'emerald', children }) {
 
 /* ─── Main Component ────────────────────────────────────────── */
 
+const ALLOWED_CREATOR_ROLES = [
+  '46fd1f5f-444c-4bdc-b13d-40e9cc504d4a',
+  'a6a9bc56-10b2-4aff-95c7-583ae3429f83'
+];
+
 export default function Usuarios() {
+  const { profile: currentProfile } = useAuth();
+  const canCreateUsers = ALLOWED_CREATOR_ROLES.includes(currentProfile?.role_id);
+
   const [profiles, setProfiles] = useState(() => {
     try {
       const cached = localStorage.getItem('forte_profiles_list_cache');
@@ -58,6 +66,13 @@ export default function Usuarios() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [saveWarning, setSaveWarning] = useState(null);
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -65,6 +80,10 @@ export default function Usuarios() {
       setIsModalOpen(false);
       setIsClosing(false);
       setEditingProfile(null);
+      setPassword('');
+      setPasswordConfirm('');
+      setSaveError(null);
+      setSaveWarning(null);
     }, 400);
   };
 
@@ -104,41 +123,91 @@ export default function Usuarios() {
     }
   };
 
+  const createUser = async ({ email, password, full_name, role_id }) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Sesión expirada. Iniciá sesión nuevamente.');
+    }
+
+    const response = await fetch('https://supabase.borei.com.ar/functions/v1/create-user', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password, full_name, role_id })
+    });
+
+    const result = await response.json();
+
+    if (response.status === 401) {
+      throw new Error('Sesión expirada. Iniciá sesión nuevamente.');
+    }
+    if (response.status === 403) {
+      throw new Error('No tenés permisos para crear usuarios.');
+    }
+    if (response.status === 207) {
+      return { user: result.user, warning: result.error || 'El perfil no pudo crearse automáticamente.' };
+    }
+    if (!response.ok) {
+      throw new Error(result.error || 'Error inesperado al crear el usuario.');
+    }
+
+    return { user: result.user };
+  };
+
   const handleEdit = (profile) => {
     setEditingProfile({ ...profile });
+    setPassword('');
+    setPasswordConfirm('');
+    setSaveError(null);
+    setSaveWarning(null);
+    setIsModalOpen(true);
+  };
+
+  const handleNewUser = () => {
+    setEditingProfile({ email: '', full_name: '', role_id: '' });
+    setPassword('');
+    setPasswordConfirm('');
+    setSaveError(null);
+    setSaveWarning(null);
     setIsModalOpen(true);
   };
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    setSaving(true);
+    setSaveError(null);
+    setSaveWarning(null);
+
     try {
       const { id, full_name, role_id, email } = editingProfile;
-      const payload = { 
-        full_name, 
-        role_id: role_id || null 
-      };
-      
+
+      if (!id) {
+        if (password.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+        if (password !== passwordConfirm) throw new Error('Las contraseñas no coinciden.');
+      }
+
       if (id) {
+        const payload = { full_name, role_id: role_id || null };
         const { error } = await supabase
           .from('profiles')
           .update(payload)
           .eq('id', id);
         if (error) throw error;
       } else {
-        // Para nuevos usuarios, necesitamos el email
-        if (!email) throw new Error("El email es obligatorio para nuevos perfiles.");
-        
-        const { error } = await supabase
-          .from('profiles')
-          .insert([{ ...payload, email }]);
-        if (error) throw error;
+        const result = await createUser({ email, password, full_name, role_id });
+        if (result.warning) {
+          setSaveWarning(result.warning);
+        }
       }
-      
+
       handleClose();
       fetchData();
     } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Error: " + error.message);
+      setSaveError(error.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -163,6 +232,14 @@ export default function Usuarios() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
+           {canCreateUsers && (
+             <button 
+                onClick={handleNewUser}
+                className="p-4 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 flex items-center gap-2 font-bold text-sm"
+             >
+                <Plus className="w-5 h-5" /> Nuevo Usuario
+             </button>
+           )}
            <button 
               onClick={fetchData}
               className={`p-4 rounded-2xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all shadow-sm`}
@@ -270,11 +347,57 @@ export default function Usuarios() {
                              className={`w-full px-5 py-4 rounded-2xl border-2 transition-all font-bold 
                                 ${editingProfile.id ? 'bg-gray-100 border-transparent text-gray-400 cursor-not-allowed' : 'bg-gray-100 border-transparent text-gray-400 text-gray-700'}`}
                           />
-                       </div>
-                    </div>
-                 </SectionCard>
+                        </div>
+                        {!editingProfile.id && (
+                          <>
+                            <div>
+                              <FieldLabel required>Contraseña</FieldLabel>
+                              <div className="relative">
+                                <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+                                <input 
+                                  type={showPassword ? 'text' : 'password'}
+                                  required
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  placeholder="Mínimo 8 caracteres"
+                                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all font-bold text-gray-700"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <FieldLabel required>Confirmar Contraseña</FieldLabel>
+                              <div className="relative">
+                                <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+                                <input 
+                                  type={showPasswordConfirm ? 'text' : 'password'}
+                                  required
+                                  value={passwordConfirm}
+                                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                                  placeholder="Repetí la contraseña"
+                                  className="w-full pl-12 pr-12 py-4 rounded-2xl bg-gray-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white focus:outline-none transition-all font-bold text-gray-700"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                  {showPasswordConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                     </div>
+                  </SectionCard>
 
-                 <SectionCard icon={Shield} title="Permisos de Sistema" color="amber">
+                  <SectionCard icon={Shield} title="Permisos de Sistema" color="amber">
                     <div>
                        <FieldLabel>Rol de Usuario</FieldLabel>
                        <div className="relative">
@@ -292,15 +415,33 @@ export default function Usuarios() {
                        </div>
                     </div>
                  </SectionCard>
-               <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
-                  <button type="button" onClick={handleClose} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition">Cancelar</button>
-                  <button 
-                    type="submit"
-                    className="flex-[2] bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 active:scale-95"
-                  >
-                    <Save className="w-5 h-5" /> Guardar Cambios
-                  </button>
-               </div>
+                {saveError && (
+                  <div className="px-8 py-4 bg-red-50 border-t border-red-100 flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                    <span className="text-sm font-bold text-red-700">{saveError}</span>
+                  </div>
+                )}
+                {saveWarning && (
+                  <div className="px-8 py-4 bg-amber-50 border-t border-amber-100 flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                    <span className="text-sm font-bold text-amber-700">{saveWarning}</span>
+                  </div>
+                )}
+                <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex gap-4">
+                   <button type="button" onClick={handleClose} className="flex-1 py-4 font-bold text-gray-400 hover:text-gray-600 transition" disabled={saving}>Cancelar</button>
+                   <button 
+                     type="submit"
+                     disabled={saving}
+                     className="flex-[2] bg-emerald-600 text-white font-black py-4 rounded-2xl hover:bg-emerald-700 transition shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                   >
+                     {saving ? (
+                       <Loader2 className="w-5 h-5 animate-spin" />
+                     ) : (
+                       <Save className="w-5 h-5" />
+                     )}
+                     {editingProfile.id ? 'Guardar Cambios' : 'Crear Usuario'}
+                   </button>
+                </div>
                </form>
            </div>
         </div>

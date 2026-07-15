@@ -534,9 +534,8 @@ export default function Campos() {
               <SectionCard icon={Tag} title="Identificación">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <FieldLabel required>Nombre del Establecimiento</FieldLabel>
+                    <FieldLabel>Nombre del Establecimiento</FieldLabel>
                     <TextInput
-                      required
                       type="text"
                       value={formData.nombre}
                       onChange={set('nombre')}

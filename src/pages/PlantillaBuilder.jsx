@@ -6,9 +6,10 @@ import {
   Save, ChevronLeft, Plus, Trash2, Layout, Map as MapIcon,
   Image as ImageIcon, Type, Settings, Layers,
   Camera, Upload, X, Bold, Italic, List, MapPin, Check,
-  ChevronUp, ChevronDown, LogOut, Loader2, GripVertical, Palette,
+  ChevronUp, ChevronDown, Copy, LogOut, Loader2, GripVertical, Palette,
   Table as TableIcon, FileSpreadsheet
 } from 'lucide-react';
+import { HexColorPicker } from 'react-colorful';
 import { usePageEditor } from '../hooks/usePageEditor';
 
 import CaratulaPage from '../components/ReportPages/CaratulaPage';
@@ -59,7 +60,7 @@ export default function PlantillaBuilder() {
     showPageSelector, setShowPageSelector,
     selectionFormat,
     isFirstLoad,
-    addPage, removePage, movePage,
+    addPage, duplicatePage, removePage, movePage,
     updatePage,
     updatePageSlice, addSlice,
     uploadImage,
@@ -468,7 +469,7 @@ export default function PlantillaBuilder() {
                         {activeColorPicker === 'bg' && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
+                             <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 overflow-y-auto max-h-[360px]">
                               <div className="grid grid-cols-2 gap-2 mb-2">
                                 {Object.entries(brandColors).map(([key, color]) => (
                                   <button
@@ -486,21 +487,39 @@ export default function PlantillaBuilder() {
                                   </button>
                                 ))}
                               </div>
-                              <label className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
-                                <Palette className="w-4 h-4 text-gray-400" />
-                                <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
-                                <input
-                                  type="color"
-                                  className="hidden"
-                                  value={activePage.blocks[activeBlockIndex].bgColor || brandColors.primary}
-                                  onChange={(e) => {
+                              <div className="p-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center gap-2">
+                                  <Palette className="w-4 h-4 text-gray-400" />
+                                  <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                </div>
+                                <HexColorPicker
+                                  color={activePage.blocks[activeBlockIndex].bgColor || brandColors.primary}
+                                  onChange={(color) => {
                                     const newBlocks = [...activePage.blocks];
-                                    newBlocks[activeBlockIndex].bgColor = e.target.value;
+                                    newBlocks[activeBlockIndex].bgColor = color;
                                     updatePage(activePageIndex, 'blocks', newBlocks);
-                                    setActiveColorPicker(null);
                                   }}
+                                  style={{ width: '100%', height: 140 }}
                                 />
-                              </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase">HEX</span>
+                                  <input
+                                    type="text"
+                                    value={activePage.blocks[activeBlockIndex].bgColor || brandColors.primary}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                                        const newBlocks = [...activePage.blocks];
+                                        newBlocks[activeBlockIndex].bgColor = val;
+                                        updatePage(activePageIndex, 'blocks', newBlocks);
+                                      }
+                                    }}
+                                    className="flex-1 px-2 py-1 text-[10px] font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase"
+                                    placeholder="#000000"
+                                    maxLength={7}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </>
                         )}
@@ -515,7 +534,7 @@ export default function PlantillaBuilder() {
                         {activeColorPicker === 'text' && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 overflow-y-auto max-h-[360px]">
                               <div className="grid grid-cols-2 gap-2 mb-2">
                                 {['#ffffff', '#000000', ...Object.values(brandColors)].map((color) => (
                                   <button
@@ -533,21 +552,39 @@ export default function PlantillaBuilder() {
                                   </button>
                                 ))}
                               </div>
-                              <label className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
-                                <Palette className="w-4 h-4 text-gray-400" />
-                                <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
-                                <input
-                                  type="color"
-                                  className="hidden"
-                                  value={activePage.blocks[activeBlockIndex].textColor || '#ffffff'}
-                                  onChange={(e) => {
+                              <div className="p-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center gap-2">
+                                  <Palette className="w-4 h-4 text-gray-400" />
+                                  <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                </div>
+                                <HexColorPicker
+                                  color={activePage.blocks[activeBlockIndex].textColor || '#ffffff'}
+                                  onChange={(color) => {
                                     const newBlocks = [...activePage.blocks];
-                                    newBlocks[activeBlockIndex].textColor = e.target.value;
+                                    newBlocks[activeBlockIndex].textColor = color;
                                     updatePage(activePageIndex, 'blocks', newBlocks);
-                                    setActiveColorPicker(null);
                                   }}
+                                  style={{ width: '100%', height: 140 }}
                                 />
-                              </label>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[8px] font-bold text-gray-400 uppercase">HEX</span>
+                                  <input
+                                    type="text"
+                                    value={activePage.blocks[activeBlockIndex].textColor || '#ffffff'}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                                        const newBlocks = [...activePage.blocks];
+                                        newBlocks[activeBlockIndex].textColor = val;
+                                        updatePage(activePageIndex, 'blocks', newBlocks);
+                                      }
+                                    }}
+                                    className="flex-1 px-2 py-1 text-[10px] font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase"
+                                    placeholder="#000000"
+                                    maxLength={7}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           </>
                         )}
@@ -716,7 +753,7 @@ export default function PlantillaBuilder() {
                               {activeColorPicker === key && (
                                 <>
                                   <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
-                                  <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 min-w-[160px]">
+                                  <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 min-w-[200px] overflow-y-auto max-h-[300px]">
                                     <div className="grid grid-cols-4 gap-1.5 mb-1.5">
                                       {colors.map((color) => (
                                         <button
@@ -734,28 +771,46 @@ export default function PlantillaBuilder() {
                                         </button>
                                       ))}
                                     </div>
-                                    <label className="flex items-center justify-center gap-1.5 p-1 rounded-lg hover:bg-gray-50 cursor-pointer">
-                                      <Palette className="w-3 h-3 text-gray-400" />
-                                      <span className="text-[7px] font-bold text-gray-500 uppercase">Personalizado</span>
-                                      <input
-                                        type="color"
-                                        className="hidden"
-                                        value={activePage.blocks[activeBlockIndex].tableData?.[prop] || def}
-                                        onChange={(e) => {
+                                    <div className="pt-2 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+                                      <div className="flex items-center gap-1.5 mb-1.5">
+                                        <Palette className="w-3 h-3 text-gray-400" />
+                                        <span className="text-[7px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                      </div>
+                                      <HexColorPicker
+                                        color={activePage.blocks[activeBlockIndex].tableData?.[prop] || def}
+                                        onChange={(color) => {
                                           const newBlocks = [...activePage.blocks];
-                                          newBlocks[activeBlockIndex].tableData = { ...newBlocks[activeBlockIndex].tableData, [prop]: e.target.value };
+                                          newBlocks[activeBlockIndex].tableData = { ...newBlocks[activeBlockIndex].tableData, [prop]: color };
                                           updatePage(activePageIndex, 'blocks', newBlocks);
-                                          setActiveColorPicker(null);
                                         }}
+                                        style={{ width: '100%', height: 85 }}
                                       />
-                                    </label>
+                                      <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="text-[7px] font-bold text-gray-400 uppercase">HEX</span>
+                                        <input
+                                          type="text"
+                                          value={activePage.blocks[activeBlockIndex].tableData?.[prop] || def}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                                              const newBlocks = [...activePage.blocks];
+                                              newBlocks[activeBlockIndex].tableData = { ...newBlocks[activeBlockIndex].tableData, [prop]: val };
+                                              updatePage(activePageIndex, 'blocks', newBlocks);
+                                            }
+                                          }}
+                                          className="flex-1 px-1.5 py-0.5 text-[10px] font-mono border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase"
+                                          placeholder="#000000"
+                                          maxLength={7}
+                                        />
+                                      </div>
+                                    </div>
                                   </div>
                                 </>
                               )}
                             </div>
                           ))}
                         </div>
-
+                        
                        <div className="h-px bg-gray-100" />
 
                        <div className="space-y-3">
@@ -1009,7 +1064,7 @@ export default function PlantillaBuilder() {
                                       {activeColorPicker === `pie-slice-${si}` && <Palette className="w-3 h-3 text-white mix-blend-difference" />}
                                     </button>
                                     {activeColorPicker === `pie-slice-${si}` && (
-                                      <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 min-w-[160px]">
+                                      <div className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2 z-50 min-w-[200px] overflow-y-auto max-h-[300px]">
                                         <div className="grid grid-cols-4 gap-1.5 mb-1.5">
                                           {['#ccff00','#4a8df8','#003399','#f97316','#a855f7','#22c55e','#ef4444','#06b6d4','#eab308','#ec4899','#14b8a6','#8b5cf6','#f43f5e','#0ea5e9','#84cc16','#64748b'].map((color) => (
                                             <button
@@ -1029,24 +1084,43 @@ export default function PlantillaBuilder() {
                                             </button>
                                           ))}
                                         </div>
-                                        <label className="flex items-center justify-center gap-1.5 p-1 rounded-lg hover:bg-gray-50 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                                          <Palette className="w-3 h-3 text-gray-400" />
-                                          <span className="text-[7px] font-bold text-gray-500 uppercase">Personalizado</span>
-                                          <input
-                                            type="color"
-                                            className="hidden"
-                                            value={slice.color}
-                                            onClick={(e) => e.stopPropagation()}
-                                            onChange={(e) => {
+                                        <div className="pt-2 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+                                          <div className="flex items-center gap-1.5 mb-1.5">
+                                            <Palette className="w-3 h-3 text-gray-400" />
+                                            <span className="text-[7px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                          </div>
+                                          <HexColorPicker
+                                            color={slice.color}
+                                            onChange={(color) => {
                                               const newBlocks = [...activePage.blocks];
                                               const slices = [...newBlocks[activeBlockIndex].slices];
-                                              slices[si] = { ...slices[si], color: e.target.value };
+                                              slices[si] = { ...slices[si], color: color };
                                               newBlocks[activeBlockIndex].slices = slices;
                                               updatePage(activePageIndex, 'blocks', newBlocks);
-                                              setActiveColorPicker(null);
                                             }}
+                                            style={{ width: '100%', height: 85 }}
                                           />
-                                        </label>
+                                          <div className="flex items-center gap-1.5 mt-1">
+                                            <span className="text-[7px] font-bold text-gray-400 uppercase">HEX</span>
+                                            <input
+                                              type="text"
+                                              value={slice.color}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                                                  const newBlocks = [...activePage.blocks];
+                                                  const slices = [...newBlocks[activeBlockIndex].slices];
+                                                  slices[si] = { ...slices[si], color: val };
+                                                  newBlocks[activeBlockIndex].slices = slices;
+                                                  updatePage(activePageIndex, 'blocks', newBlocks);
+                                                }
+                                              }}
+                                              className="flex-1 px-1.5 py-0.5 text-[10px] font-mono border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase"
+                                              placeholder="#000000"
+                                              maxLength={7}
+                                            />
+                                          </div>
+                                        </div>
                                       </div>
                                     )}
                                   </div>
@@ -1413,7 +1487,7 @@ export default function PlantillaBuilder() {
                           {activeColorPicker === 'overlay' && (
                             <>
                               <div className="fixed inset-0 z-40" onClick={() => setActiveColorPicker(null)} />
-                              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50">
+                              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 z-50 overflow-y-auto max-h-[360px]">
                                 <div className="grid grid-cols-2 gap-2 mb-2">
                                   {Object.entries(brandColors).map(([key, color]) => (
                                     <button
@@ -1429,19 +1503,34 @@ export default function PlantillaBuilder() {
                                     </button>
                                   ))}
                                 </div>
-                                <div className="relative flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50">
-                                  <Palette className="w-4 h-4 text-gray-400" />
-                                  <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
-                                  <div className="ml-auto w-6 h-6 rounded-lg border border-gray-200 pointer-events-none" style={{ backgroundColor: activePage.overlay_color || '#8cc63f' }} />
-                                  <input
-                                    type="color"
-                                    value={activePage.overlay_color || '#8cc63f'}
-                                    onChange={(e) => {
-                                      updatePage(activePageIndex, 'overlay_color', e.target.value);
-                                      setActiveColorPicker(null);
+                                <div className="p-2 space-y-2" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center gap-2">
+                                    <Palette className="w-4 h-4 text-gray-400" />
+                                    <span className="text-[9px] font-bold text-gray-500 uppercase">Personalizado</span>
+                                  </div>
+                                  <HexColorPicker
+                                    color={activePage.overlay_color || '#8cc63f'}
+                                    onChange={(color) => {
+                                      updatePage(activePageIndex, 'overlay_color', color);
                                     }}
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                    style={{ width: '100%', height: 130 }}
                                   />
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[8px] font-bold text-gray-400 uppercase">HEX</span>
+                                    <input
+                                      type="text"
+                                      value={activePage.overlay_color || '#8cc63f'}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+                                          updatePage(activePageIndex, 'overlay_color', val);
+                                        }
+                                      }}
+                                      className="flex-1 px-2 py-1 text-[10px] font-mono border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent uppercase"
+                                      placeholder="#000000"
+                                      maxLength={7}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </>
@@ -1526,9 +1615,14 @@ export default function PlantillaBuilder() {
                         </button>
                       </div>
 
-                      <button onClick={(e) => { e.stopPropagation(); removePage(index); }} className="absolute -top-3 -right-3 p-2 bg-white border-2 border-red-50 rounded-2xl text-red-400 hover:bg-red-500 hover:text-white shadow-lg transition-all opacity-0 group-hover:opacity-100 z-10">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 z-10">
+                        <button onClick={(e) => { e.stopPropagation(); duplicatePage(index); }} className="p-2 bg-white border-2 border-blue-50 rounded-2xl text-blue-400 hover:bg-blue-500 hover:text-white shadow-lg transition-all">
+                          <Copy className="w-4 h-4" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); removePage(index); }} className="p-2 bg-white border-2 border-red-50 rounded-2xl text-red-400 hover:bg-red-500 hover:text-white shadow-lg transition-all">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
 
                       <ThumbnailPreview page={page} pageIndex={index} />
 

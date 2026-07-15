@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, GripVertical, Table as TableIcon, PieChart, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Camera, Plus, Trash2, Palette, Upload, Check, Type, Image as ImageIcon, Table as TableIcon, PieChart, X } from 'lucide-react';
 import { useSettings } from '../../contexts/SettingsContext';
 import { convertShadowForPDF } from '../../utils/pdfShadowUtils';
 
@@ -59,16 +60,20 @@ export default function DinamicaPage({
     accent: '#ccff00',
     dark: '#001a4d'
   };
-  const [dragState, setDragState] = useState({ isDragging: false, startY: 0, startOffset: 0, blockIdx: null });
+  const [dragState, setDragState] = useState({ isDragging: false, startY: 0, startOffset: 0, blockIdx: null, startedFromEditable: false });
+  const DRAG_THRESHOLD = 5;
   const [colResize, setColResize] = useState(null);
   const [previewWidths, setPreviewWidths] = useState({});
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState(null);
   const addMenuRef = useRef(null);
+  const portalRef = useRef(null);
 
   useEffect(() => {
     if (!showAddMenu) return;
     const handleClick = (e) => {
       if (addMenuRef.current && !addMenuRef.current.contains(e.target)) {
+        if (portalRef.current && portalRef.current.contains(e.target)) return;
         setShowAddMenu(false);
       }
     };
@@ -79,27 +84,40 @@ export default function DinamicaPage({
 
   const handleMouseDown = (e, idx, initialOffset) => {
     if (!isEditMode) return;
-    // Evitar disparar si se hace click en un botón o input interno
-    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     
-    e.preventDefault();
     setDragState({
       isDragging: true,
       startY: e.clientY,
       startOffset: initialOffset || 0,
-      blockIdx: idx
+      blockIdx: idx,
+      startedFromEditable: e.target.isContentEditable
     });
     setActiveBlockIndex(idx);
   };
 
   useEffect(() => {
+    let dragActivated = false;
+
     const handleMouseMove = (e) => {
       if (!dragState.isDragging) return;
       const deltaY = e.clientY - dragState.startY;
+
+      if (!dragActivated) {
+        if (Math.abs(deltaY) < DRAG_THRESHOLD) return;
+        dragActivated = true;
+        if (dragState.startedFromEditable) {
+          document.activeElement?.blur();
+          document.body.style.userSelect = 'none';
+          document.body.style.webkitUserSelect = 'none';
+        }
+        e.preventDefault();
+      }
+
       const container = document.getElementById(`page-${pageIndex}`);
       if (!container) return;
       
-      const scaleFactor = 297 / container.offsetHeight; // mm por pixel
+      const scaleFactor = 297 / container.offsetHeight;
       const deltaMm = deltaY * scaleFactor;
       
       const newBlocks = [...blocks];
@@ -112,7 +130,11 @@ export default function DinamicaPage({
 
     const handleMouseUp = () => {
       if (dragState.isDragging) {
-        setDragState({ isDragging: false, startY: 0, startOffset: 0, blockIdx: null });
+        setDragState({ isDragging: false, startY: 0, startOffset: 0, blockIdx: null, startedFromEditable: false });
+      }
+      if (dragActivated) {
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
       }
     };
 
@@ -124,6 +146,10 @@ export default function DinamicaPage({
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      if (dragActivated) {
+        document.body.style.userSelect = '';
+        document.body.style.webkitUserSelect = '';
+      }
     };
   }, [dragState, pageIndex, updatePage, blocks]);
 
@@ -180,7 +206,7 @@ export default function DinamicaPage({
       bgColor: '#ffffff',
       textColor: '#003399'
     };
-    const newBlock = { ...base, isNew: true };
+    const newBlock = { ...base };
     if (type === 'title') {
       Object.assign(newBlock, { title: 'TÍTULO', bgColor: brandColors.primary, textColor: '#ffffff' });
     } else if (type === 'image') {
@@ -306,11 +332,7 @@ export default function DinamicaPage({
                   return isPDFRender ? convertShadowForPDF(s) : s;
                 })()}
               >
-                {isEditMode && (
-                  <div data-no-print="true" className="absolute top-4 right-4 text-gray-400 group-hover:text-emerald-500 transition-colors pointer-events-none export-hidden">
-                    <GripVertical className="w-5 h-5" />
-                  </div>
-                )}
+
 
                   {block.type === "title" && (
                       <div 
@@ -761,55 +783,62 @@ export default function DinamicaPage({
       </div>
 
       {isEditMode && (
-        <div data-no-print="true" className="absolute top-8 right-8 z-20">
+        <div data-no-print="true" className="absolute top-8 right-8 z-[100]">
           <div className="relative" ref={addMenuRef}>
             <button
-              onClick={() => setShowAddMenu(!showAddMenu)}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMenuPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+                setShowAddMenu(!showAddMenu);
+              }}
               className="p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white cursor-pointer hover:bg-white/40 transition-all flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
             </button>
-            {showAddMenu && (
-              <div className="absolute top-full right-0 mt-2 bg-gray-900 border border-white/10 rounded-2xl shadow-xl p-2 z-40 min-w-[170px]">
-                <button
-                  onClick={() => { addBlock('title'); setShowAddMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  <Type className="w-4 h-4" /> Título
-                </button>
-                <button
-                  onClick={() => { addBlock('text'); setShowAddMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  <Palette className="w-4 h-4" /> Bloque
-                </button>
-                <button
-                  onClick={() => { addBlock('image'); setShowAddMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  <ImageIcon className="w-4 h-4" /> Imagen
-                </button>
-                <button
-                  onClick={() => { addBlock('table'); setShowAddMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  <TableIcon className="w-4 h-4" /> Tabla
-                </button>
-                <button
-                  onClick={() => { addBlock('piechart'); setShowAddMenu(false); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  <PieChart className="w-4 h-4" /> Gráfico
-                </button>
-                <div className="h-px bg-white/10 my-1" />
-                <label className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer">
-                  <Camera className="w-4 h-4" /> Cambiar Fondo
-                  <input type="file" className="hidden" onChange={(e) => { uploadImage(e, pageIndex, 'fondo_url'); setShowAddMenu(false); }} accept="image/*" />
-                </label>
-              </div>
-            )}
           </div>
         </div>
+      )}
+
+      {showAddMenu && menuPosition && createPortal(
+        <div ref={portalRef} className="fixed bg-gray-900 border border-white/10 rounded-2xl shadow-xl p-2 min-w-[170px]"
+          style={{ top: menuPosition.top, right: menuPosition.right, zIndex: 9999 }}>
+          <button
+            onClick={() => { addBlock('title'); setShowAddMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+          >
+            <Type className="w-4 h-4" /> Título
+          </button>
+          <button
+            onClick={() => { addBlock('text'); setShowAddMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+          >
+            <Palette className="w-4 h-4" /> Bloque
+          </button>
+          <button
+            onClick={() => { addBlock('image'); setShowAddMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+          >
+            <ImageIcon className="w-4 h-4" /> Imagen
+          </button>
+          <button
+            onClick={() => { addBlock('table'); setShowAddMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+          >
+            <TableIcon className="w-4 h-4" /> Tabla
+          </button>
+          <button
+            onClick={() => { addBlock('piechart'); setShowAddMenu(false); }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all"
+          >
+            <PieChart className="w-4 h-4" /> Gráfico
+          </button>
+          <div className="h-px bg-white/10 my-1" />
+          <label className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-white font-black text-[10px] uppercase tracking-widest transition-all cursor-pointer">
+            <Camera className="w-4 h-4" /> Cambiar Fondo
+            <input type="file" className="hidden" onChange={(e) => { uploadImage(e, pageIndex, 'fondo_url'); setShowAddMenu(false); }} accept="image/*" />
+          </label>
+        </div>,
+        document.body
       )}
 
         {/* Footer Branding */}

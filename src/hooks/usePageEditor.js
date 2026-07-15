@@ -191,6 +191,24 @@ export function usePageEditor({ id, saveFn }) {
     });
   }, [activePageIndex, pagesData.length, recordMutation]);
 
+  const duplicatePage = useCallback((index) => {
+    recordMutation();
+    setPagesData(prev => {
+      const source = prev[index];
+      if (!source) return prev;
+      const cloned = JSON.parse(JSON.stringify(source));
+      cloned.id = crypto.randomUUID();
+      const newArray = [...prev];
+      newArray.splice(index + 1, 0, cloned);
+      setActivePageIndex(index + 1);
+      isLocalUpdateRef.current = true;
+      setTimeout(() => {
+        document.getElementById(`page-${index + 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return newArray;
+    });
+  }, [recordMutation]);
+
   const movePage = useCallback((index, direction) => {
     if ((direction === 'up' && index === 0) || (direction === 'down' && index === pagesData.length - 1)) return;
     recordMutation();
@@ -320,7 +338,7 @@ export function usePageEditor({ id, saveFn }) {
     selectionFormat,
     debouncedPagesData, isLocalUpdateRef, isFirstLoad,
     currentLockedFieldRef,
-    addPage, removePage, movePage,
+    addPage, duplicatePage, removePage, movePage,
     updatePage, handleRemoteUpdate,
     updatePageSlice, addSlice,
     setNestedValue, uploadImage,
