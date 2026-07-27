@@ -178,9 +178,10 @@ export default function RenderPage() {
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,500;1,600;1,700;1,900&display=swap&subset=latin-ext');
-        * { font-family: 'Inter', system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        * { font-family: 'Inter', system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-shadow: none !important; box-shadow: none !important; }
         [data-no-print="true"], .export-hidden { display: none !important; }
         textarea, input { outline: none !important; box-shadow: none !important; caret-color: transparent !important; }
+        [contenteditable] { outline: none !important; box-shadow: none !important; text-shadow: none !important; }
         h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
         .bloque, .seccion { break-inside: avoid; page-break-inside: avoid; }
         @page { size: A4; margin: 0; }
