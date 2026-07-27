@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,
+    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
   },
@@ -100,6 +101,25 @@ const styles = StyleSheet.create({
   },
   footerAccent: {
     color: COLORS.accent,
+  },
+  pageBadge: {
+    position: 'absolute',
+    bottom: 36,
+    left: 48,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  pageBadgeText: {
+    fontSize: 8,
+    fontWeight: 900,
+    color: COLORS.white,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    opacity: 0.8,
   },
 });
 
@@ -260,6 +280,10 @@ export default function DinamicaPDF({ page, pageIndex, campoMetadata, brandColor
             <Text style={{ fontSize: 9, fontWeight: 900, color: COLORS.white }}>≡ REAL</Text>
           </View>
         </View>
+      </View>
+
+      <View style={styles.pageBadge}>
+        <Text style={styles.pageBadgeText}>Pág. {pageIndex + 1}</Text>
       </View>
     </Page>
   );

@@ -108,8 +108,14 @@ export default function TextoFotosPage({
                 <span className="font-black text-sm tracking-tighter">REAL</span>
               )}
            </div>
-        </div>
+         </div>
+
+       </div>
+
+      {/* Page Badge */}
+      <div className={`absolute bottom-[134px] left-10 px-5 py-2 rounded-2xl border z-[9999] ${page.fondo_url ? 'bg-white/10 backdrop-blur-md border-white/20' : 'bg-gray-100/80 border-gray-200'}`}>
+         <span className={`text-xs font-black uppercase tracking-widest ${page.fondo_url ? 'text-white opacity-80' : 'text-gray-600'}`}>Pág. {pageIndex + 1}</span>
       </div>
-    </div>
-  );
+     </div>
+   );
 }

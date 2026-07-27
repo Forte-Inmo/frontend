@@ -85,6 +85,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
+  pageBadge: {
+    position: 'absolute',
+    bottom: 36,
+    left: 48,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  pageBadgeText: {
+    fontSize: 8,
+    fontWeight: 900,
+    color: COLORS.white,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    opacity: 0.8,
+  },
 });
 
 function stripHtml(html) {
@@ -154,6 +173,10 @@ export default function UbicacionPDF({ page, pageIndex, campoMetadata, brandColo
             </View>
           </View>
         </View>
+      </View>
+
+      <View style={styles.pageBadge}>
+        <Text style={styles.pageBadgeText}>Pág. {pageIndex + 1}</Text>
       </View>
     </Page>
   );

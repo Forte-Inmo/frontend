@@ -122,6 +122,44 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
   },
+  pageBadge: {
+    position: 'absolute',
+    bottom: 36,
+    left: 48,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  pageBadgeText: {
+    fontSize: 8,
+    fontWeight: 900,
+    color: COLORS.white,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    opacity: 0.8,
+  },
+  pageBadgeDark: {
+    position: 'absolute',
+    bottom: 36,
+    left: 48,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+  pageBadgeTextDark: {
+    fontSize: 8,
+    fontWeight: 900,
+    color: COLORS.gray700,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    opacity: 0.7,
+  },
 });
 
 function stripHtml(html) {
@@ -189,6 +227,10 @@ export default function TextoFotosPDF({ page, pageIndex, campoMetadata, brandCol
             <Text style={{ fontSize: 8, fontWeight: 900, color: hasBg ? COLORS.white : '#374151', letterSpacing: 1 }}>≡ REAL</Text>
           </View>
         </View>
+      </View>
+
+      <View style={hasBg ? styles.pageBadge : styles.pageBadgeDark}>
+        <Text style={hasBg ? styles.pageBadgeText : styles.pageBadgeTextDark}>Pág. {pageIndex + 1}</Text>
       </View>
     </Page>
   );

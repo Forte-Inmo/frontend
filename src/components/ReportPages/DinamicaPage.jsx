@@ -869,11 +869,11 @@ export default function DinamicaPage({
            </div>
         </div>
 
-        {/* Page Badge */}
-        <div data-no-print="true" className="absolute bottom-8 left-8 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 export-hidden">
-           <span className="text-white text-[10px] font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
-        </div>
+      </div>
 
+      {/* Page Badge */}
+      <div className="absolute bottom-[134px] left-8 bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 z-[9999]">
+         <span className="text-white text-[10px] font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
       </div>
     </div>
   );
