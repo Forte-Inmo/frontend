@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useExportPDF } from '../hooks/useExportPDF';
+import { useExportBooklet } from '../hooks/useExportBooklet';
 
 /* ─── UI Primitives ────────────────────────────────────────── */
 
@@ -226,7 +227,9 @@ export default function Informes() {
   );
 
   const { exportPDF, checkExistingExport, getExports } = useExportPDF();
+  const { exportBooklet } = useExportBooklet();
   const [exportingId, setExportingId] = useState(null);
+  const [bookletingId, setBookletingId] = useState(null);
   const [exportProgress, setExportProgress] = useState(null);
 
   const handleExport = async (informe) => {
@@ -248,6 +251,28 @@ export default function Informes() {
       setExportProgress(prev => ({ ...prev, stage: 'error', error: error.message, logs: [...(prev?.logs || []), 'ERROR: ' + error.message] }));
     } finally {
       setExportingId(null);
+    }
+  };
+
+  const handleExportBooklet = async (informe) => {
+    setBookletingId(informe.id);
+    setExportProgress({ stage: 'pending', progress: 0, logs: ['Iniciando exportación revista...'], error: null });
+    try {
+      const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}-revista.pdf`.replace(/\s+/g, '_');
+      await exportBooklet({
+        informeId: informe.id,
+        filename,
+        informeTitle: `${informe.titulo || 'Informe'} - ${informe.campos?.nombre || 'Terreno'}`,
+        onProgress: (p) => setExportProgress(p),
+      });
+      if (activeTab === 'exportaciones') {
+        loadExports();
+      }
+    } catch (error) {
+      console.error('Error exportando booklet A3:', error);
+      setExportProgress(prev => ({ ...prev, stage: 'error', error: error.message, logs: [...(prev?.logs || []), 'ERROR: ' + error.message] }));
+    } finally {
+      setBookletingId(null);
     }
   };
 
@@ -486,6 +511,13 @@ export default function Informes() {
                     >
                       {exportingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       <span>{exportingId === informe.id ? 'Generando...' : 'Exportar PDF'}</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleExportBooklet(informe); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:border-blue-500"
+                    >
+                      {bookletingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                      <span>{bookletingId === informe.id ? 'Generando...' : 'Revista A3'}</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleVerVersiones(informe); }}

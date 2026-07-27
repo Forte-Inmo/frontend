@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const ws = require('ws');
 const nodemailer = require('nodemailer');
+const { PDFDocument } = require('pdf-lib');
 
 const app = express();
 app.use(cors());
@@ -323,6 +324,192 @@ async function processJob(job) {
   }
 }
 
+async function imposeBooklet(a4PdfBuffer) {
+  const a4Doc = await PDFDocument.load(a4PdfBuffer);
+  const totalPages = a4Doc.getPageCount();
+  if (totalPages === 0) return a4PdfBuffer;
+
+  const paddedPages = Math.ceil(totalPages / 4) * 4;
+  const numSheets = paddedPages / 4;
+  const A3_W = 1190.55;
+  const A3_H = 841.89;
+  const A4_W = 595.28;
+  const A4_H = 841.89;
+
+  const a3Doc = await PDFDocument.create();
+
+  for (let sheet = 0; sheet < numSheets; sheet++) {
+    const frontLeft = paddedPages - 2 * sheet;
+    const frontRight = 2 * sheet + 1;
+    const backLeft = 2 * sheet + 2;
+    const backRight = paddedPages - 2 * sheet - 1;
+
+    const frontPage = a3Doc.addPage([A3_W, A3_H]);
+    if (frontLeft <= totalPages) {
+      const [cp] = await a3Doc.copyPages(a4Doc, [frontLeft - 1]);
+      const emb = await a3Doc.embedPage(cp);
+      frontPage.drawPage(emb, { x: 0, y: 0, width: A4_W, height: A4_H });
+    }
+    if (frontRight <= totalPages) {
+      const [cp] = await a3Doc.copyPages(a4Doc, [frontRight - 1]);
+      const emb = await a3Doc.embedPage(cp);
+      frontPage.drawPage(emb, { x: A4_W, y: 0, width: A4_W, height: A4_H });
+    }
+
+    const backPage = a3Doc.addPage([A3_W, A3_H]);
+    if (backLeft <= totalPages) {
+      const [cp] = await a3Doc.copyPages(a4Doc, [backLeft - 1]);
+      const emb = await a3Doc.embedPage(cp);
+      backPage.drawPage(emb, { x: 0, y: 0, width: A4_W, height: A4_H });
+    }
+    if (backRight <= totalPages) {
+      const [cp] = await a3Doc.copyPages(a4Doc, [backRight - 1]);
+      const emb = await a3Doc.embedPage(cp);
+      backPage.drawPage(emb, { x: A4_W, y: 0, width: A4_W, height: A4_H });
+    }
+  }
+
+  return Buffer.from(await a3Doc.save());
+}
+
+async function processBookletJob(job) {
+  const t = (label) => {
+    const s = ((Date.now() - job.createdAt) / 1000).toFixed(1);
+    const msg = `[${s}s] ${label}`;
+    console.log(msg);
+    updateJob(job, { logs: [...job.logs, msg] });
+  };
+
+  updateJob(job, { stage: 'counting', progress: 3 });
+  t('Iniciando renderizado para booklet A3...');
+
+  const CHUNK_SIZE = 7;
+  let browser;
+  let pageCount = 0;
+
+  try {
+    t('Lanzando browser para conteo de páginas...');
+    browser = await puppeteer.launch({
+      args: [
+        '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+        '--font-render-hinting=none', '--force-color-profile=srgb',
+        '--disable-lcd-text', '--disable-gpu', '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+      ],
+      headless: true,
+    });
+
+    const countPage = await browser.newPage();
+    await countPage.setViewport({ width: 794, height: 1123 });
+    await countPage.emulateMediaType('screen');
+    t('Navegando para conteo...');
+    const countUrl = `${job.url}${job.url.includes('?') ? '&' : '?'}count=1`;
+    await countPage.goto(countUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+    await countPage.waitForFunction('document.fonts.ready', { timeout: 10000 });
+    await countPage.waitForSelector('[data-render-complete="true"]', { timeout: 45000 });
+    await countPage.waitForNetworkIdle({ idleTime: 500 });
+
+    pageCount = await countPage.evaluate(() =>
+      document.querySelectorAll('[data-page-index]').length
+    );
+    await browser.close();
+    browser = null;
+    t(`Total páginas detectadas: ${pageCount}`);
+
+    if (pageCount === 0) {
+      updateJob(job, { stage: 'error', error: 'No se encontraron páginas en el informe' });
+      return;
+    }
+
+    updateJob(job, { stage: 'rendering', progress: 5 });
+
+    const chunks = [];
+    for (let i = 0; i < pageCount; i += CHUNK_SIZE) {
+      chunks.push({ from: i, to: Math.min(i + CHUNK_SIZE - 1, pageCount - 1) });
+    }
+    t(`Dividido en ${chunks.length} chunks de hasta ${CHUNK_SIZE} páginas: ${chunks.map(c => `${c.from}-${c.to}`).join(', ')}`);
+
+    const chunkPaths = await Promise.all(chunks.map((chunk, idx) =>
+      (async () => {
+        const tmpPath = await renderChunk(job, chunk);
+        const progress = 10 + ((idx + 1) / chunks.length) * 55;
+        updateJob(job, { progress: Math.round(progress) });
+        return tmpPath;
+      })()
+    ));
+    t('Todos los chunks generados, mergeando con Ghostscript...');
+    updateJob(job, { stage: 'merging', progress: 65 });
+
+    const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
+    execSync(
+      `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
+      `-sProcessColorModel=DeviceCMYK ` +
+      `-sColorConversionStrategy=CMYK ` +
+      `-sColorConversionStrategyForImages=CMYK ` +
+      `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
+      { timeout: 300000 }
+    );
+
+    const mergedPdf = fs.readFileSync(mergedPath);
+    updateJob(job, { progress: 68 });
+    t(`PDF mergeado (${(mergedPdf.length / 1024).toFixed(0)} KB)`);
+
+    for (const cp of chunkPaths) {
+      try { fs.unlinkSync(cp); } catch (_) {}
+    }
+
+    // Impose into A3 booklet
+    t('Imprimiendo en formato revista A3...');
+    updateJob(job, { stage: 'imposing', progress: 75 });
+
+    const bookletPdf = await imposeBooklet(mergedPdf);
+    t(`Booklet A3 generado (${(bookletPdf.length / 1024).toFixed(0)} KB, ${Math.ceil(pageCount / 4)} hojas)`);
+
+    try { fs.unlinkSync(mergedPath); } catch (_) {}
+
+    // Upload to Storage
+    t('Subiendo PDF a Storage...');
+    updateJob(job, { progress: 90 });
+
+    try {
+      const storagePath = await uploadToStorage(job.userId, job.informeId, bookletPdf);
+      await updatePdfExport(job.exportId, {
+        status: 'done',
+        storage_path: storagePath,
+        completed_at: new Date().toISOString(),
+      });
+      t('PDF subido a Storage');
+
+      const downloadUrl = `${APP_URL}/pdf-download/${job.exportId}`;
+      await Promise.race([
+        sendEmail(job.userEmail, downloadUrl, `[Revista A3] ${job.informeTitle}`),
+        new Promise(r => setTimeout(r, 10000)),
+      ]);
+
+      t('Booklet A3 listo para descargar. Email enviado.');
+      updateJob(job, { stage: 'done', progress: 100, pdf: bookletPdf });
+    } catch (storageErr) {
+      t(`Storage falló, sirviendo directo: ${storageErr.message}`);
+      await updatePdfExport(job.exportId, { status: 'done', completed_at: new Date().toISOString() });
+      t('Booklet A3 listo para descargar (sin storage)');
+      updateJob(job, { stage: 'done', progress: 100, pdf: bookletPdf });
+    }
+  } catch (err) {
+    try {
+      if (browser) {
+        const page = await browser.newPage();
+        await page.screenshot({ path: '/tmp/pdf-error.png', fullPage: true });
+        t('Screenshot guardado en /tmp/pdf-error.png');
+      }
+    } catch (_) {}
+    t(`ERROR: ${err.message}`);
+    updateJob(job, { stage: 'error', progress: 0, error: err.message });
+    await updatePdfExport(job.exportId, { status: 'error', error: err.message });
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
 function updateJob(job, updates) {
   const updated = { ...job, ...updates };
   jobs.set(job.id, updated);
@@ -368,6 +555,48 @@ app.post('/generate-pdf', (req, res) => {
 
   res.json({ jobId });
   processJob(job);
+});
+
+app.post('/generate-booklet', (req, res) => {
+  const { url, informeId, userId, userEmail, informeTitle } = req.body;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+  if (!informeId) return res.status(400).json({ error: 'informeId is required' });
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+  const jobId = crypto.randomUUID();
+  const job = {
+    id: jobId,
+    exportId: null,
+    url,
+    informeId,
+    userId,
+    userEmail: userEmail || '',
+    informeTitle: informeTitle || '',
+    stage: 'pending',
+    progress: 0,
+    logs: [],
+    pdf: null,
+    error: null,
+    createdAt: Date.now(),
+  };
+  jobs.set(jobId, job);
+
+  supabase
+    .from('pdf_exports')
+    .insert({ informe_id: informeId, user_id: userId, status: 'pending' })
+    .select()
+    .single()
+    .then(({ data, error }) => {
+      if (error) {
+        console.error('Failed to create export record:', error.message);
+        updateJob(job, { stage: 'error', error: 'Failed to create export record: ' + error.message });
+        return;
+      }
+      updateJob(job, { exportId: data.id });
+    });
+
+  res.json({ jobId });
+  processBookletJob(job);
 });
 
 app.get('/pdf-status/:jobId', (req, res) => {
