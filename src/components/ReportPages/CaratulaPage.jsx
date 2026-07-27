@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, Camera, GripHorizontal } from 'lucide-react';
 
 export default function CaratulaPage({
@@ -14,7 +14,6 @@ export default function CaratulaPage({
   isEditMode = true,
   settings = null
 }) {
-  const titleRef = useRef(null);
   const [dragState, setDragState] = useState({ isDragging: false, startY: 0, startOffset: 0 });
 
   const handleLogosMouseDown = (e) => {
@@ -47,13 +46,6 @@ export default function CaratulaPage({
       window.removeEventListener('mouseup', handleUp);
     };
   }, [dragState, pageIndex, updatePage]);
-
-  useEffect(() => {
-    if (titleRef.current) {
-      titleRef.current.style.height = 'auto';
-      titleRef.current.style.height = titleRef.current.scrollHeight + 'px';
-    }
-  }, [page.titulo]);
 
   const LockBadge = ({ userName }) => (
     <div className="absolute -top-8 left-0 bg-amber-500 text-white text-[11px] font-black px-3 py-1.5 rounded-t-lg flex items-center gap-2 z-[100] pointer-events-none uppercase tracking-tight whitespace-nowrap export-hidden" data-no-print="true">
@@ -123,19 +115,21 @@ export default function CaratulaPage({
         <div className="flex flex-col items-center mt-[10mm] w-full px-[20mm]">
           <div className="relative w-full">
             {isLockedByOther(`page_${page.id}_titulo`) && <LockBadge userName={activeLocks[`page_${page.id}_titulo`].userName} />}
-            <textarea
-              ref={titleRef}
-              value={page.titulo || (campoMetadata?.operacion === 'alquiler' ? 'CAMPO EN ALQUILER' : 'CAMPO EN VENTA')}
-              onChange={(e) => updatePage(pageIndex, 'titulo', e.target.value)}
+            <div
+              contentEditable={isEditMode && !isLockedByOther(`page_${page.id}_titulo`)}
+              suppressContentEditableWarning
               onFocus={() => acquireLock(`page_${page.id}_titulo`)}
-              onBlur={releaseLock}
-              disabled={isLockedByOther(`page_${page.id}_titulo`) || !isEditMode}
-              className="w-full text-[75px] leading-[1.1] font-black text-center resize-none bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl transition uppercase text-[#ccff00] placeholder:opacity-50 overflow-hidden"
-              onInput={(e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
+              onBlur={(e) => {
+                const val = e.currentTarget.innerText;
+                if (val !== (page.titulo || (campoMetadata?.operacion === 'alquiler' ? 'CAMPO EN ALQUILER' : 'CAMPO EN VENTA'))) {
+                  updatePage(pageIndex, 'titulo', val);
+                }
+                releaseLock();
               }}
-            />
+              className="w-full text-[75px] leading-[1.1] font-black text-center bg-transparent border border-transparent focus:border-[#ccff00]/30 focus:outline-none p-2 rounded-2xl uppercase text-[#ccff00]"
+            >
+              {page.titulo || (campoMetadata?.operacion === 'alquiler' ? 'CAMPO EN ALQUILER' : 'CAMPO EN VENTA')}
+            </div>
           </div>
 
           {/* Subtitulo */}
