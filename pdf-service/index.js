@@ -380,6 +380,7 @@ async function processBookletJob(job) {
     updateJob(job, { logs: [...job.logs, msg] });
   };
 
+  job.url += `${job.url.includes('?') ? '&' : '?'}booklet=1`;
   updateJob(job, { stage: 'counting', progress: 3 });
   t('Iniciando renderizado para booklet A3...');
 

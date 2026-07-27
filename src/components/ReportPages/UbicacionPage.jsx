@@ -337,7 +337,7 @@ export default function UbicacionPage({
       </div>
 
       {/* Page Badge */}
-      <div className="absolute bottom-[134px] left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 z-[9999]">
+        <div className="page-badge absolute bottom-[134px] left-10 bg-white/10 backdrop-blur-md px-5 py-2 rounded-2xl border border-white/20 z-[9999]">
          <span className="text-white text-xs font-black uppercase tracking-widest opacity-80">Pág. {pageIndex + 1}</span>
       </div>
     </div>

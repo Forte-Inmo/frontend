@@ -15,6 +15,7 @@ export default function RenderPage() {
   const token = searchParams.get('token');
   const from = searchParams.get('from');
   const to = searchParams.get('to');
+  const booklet = searchParams.get('booklet') === '1';
 
   const [status, setStatus] = useState('validating');
   const [informe, setInforme] = useState(null);
@@ -185,15 +186,17 @@ export default function RenderPage() {
         h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
         .bloque, .seccion { break-inside: avoid; page-break-inside: avoid; }
         @page { size: A4; margin: 0; }
+        [data-page-side="right"] .page-badge { left: auto !important; right: 40px !important; }
       `}</style>
       {displayPages.map((page, displayIndex) => {
         const realIndex = (from != null && to != null) ? Number(from) + displayIndex : displayIndex;
         return (
-        <div
-          key={page.id}
-          id={`page-${realIndex}`}
-          data-page-index={realIndex}
-          style={{
+          <div
+            key={page.id}
+            id={`page-${realIndex}`}
+            data-page-index={realIndex}
+            data-page-side={booklet && realIndex % 2 === 0 ? 'right' : undefined}
+            style={{
             width: '210mm',
             height: '297mm',
             position: 'relative',
