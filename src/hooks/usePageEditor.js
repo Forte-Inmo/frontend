@@ -229,45 +229,65 @@ export function usePageEditor({ id, saveFn }) {
     });
   }, [pagesData.length, recordMutation]);
 
-  const resizeImage = (file, maxDimension = 2560, quality = 0.85) => {
-    console.log('[upload] resizeImage start', { name: file.name, size: file.size, type: file.type });
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'image/bmp'];
+  const MAX_IMAGE_SIZE = 100 * 1024 * 1024;
+
+  const sanitizeName = (filename) =>
+    filename.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9-_]/g, '_').toLowerCase().slice(0, 60);
+
+  const canvasToBlob = (canvas, type, quality) =>
+    new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+  const prepareImage = (file, maxDimension = 2560, webQuality = 0.82) => {
+    console.log('[upload] prepareImage start', { name: file.name, size: file.size, type: file.type });
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
-      img.onload = () => {
-        let { width, height } = img;
-        console.log('[upload] image loaded', { width, height });
-        if (width <= maxDimension && height <= maxDimension) {
-          console.log('[upload] image already small enough, skipping resize');
-          URL.revokeObjectURL(url);
-          resolve(file);
-          return;
-        }
-        const ratio = maxDimension / Math.max(width, height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-        console.log('[upload] resizing to', { width, height, ratio });
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          URL.revokeObjectURL(url);
-          if (blob) {
-            const resized = new File([blob], file.name, { type: file.type });
-            console.log('[upload] resize done', { originalSize: file.size, newSize: resized.size, savedPercent: (((file.size - resized.size) / file.size) * 100).toFixed(1) });
-            resolve(resized);
-          } else {
-            console.warn('[upload] toBlob returned null, using original file');
-            resolve(file);
+      img.onload = async () => {
+        try {
+          let { width, height } = img;
+          console.log('[upload] image loaded', { width, height });
+          const needsResize = width > maxDimension || height > maxDimension;
+          if (needsResize) {
+            const ratio = maxDimension / Math.max(width, height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+            console.log('[upload] resizing to', { width, height, ratio });
           }
-        }, file.type, quality);
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let original = file;
+          if (needsResize) {
+            const resizedBlob = await canvasToBlob(canvas, file.type, 0.85);
+            if (resizedBlob) {
+              original = new File([resizedBlob], file.name, { type: file.type });
+              console.log('[upload] resize done', { originalSize: file.size, newSize: original.size });
+            } else {
+              console.warn('[upload] toBlob returned null, keeping original file');
+            }
+          }
+
+          const webBlob = await canvasToBlob(canvas, 'image/webp', webQuality);
+          const web = webBlob && webBlob.type === 'image/webp' ? webBlob : null;
+          console.log('[upload] web version', { hasWeb: !!web, webSize: web?.size ?? null });
+
+          URL.revokeObjectURL(url);
+          resolve({ original, web });
+        } catch (err) {
+          console.error('[upload] prepare error', err);
+          URL.revokeObjectURL(url);
+          resolve({ original: file, web: null });
+        }
       };
       img.onerror = (err) => {
         console.error('[upload] image load error', err);
         URL.revokeObjectURL(url);
-        resolve(file);
+        resolve({ original: file, web: null });
       };
       img.src = url;
     });
@@ -281,33 +301,55 @@ export function usePageEditor({ id, saveFn }) {
     }
     console.log('[upload] starting upload', { name: file.name, size: file.size, type: file.type, pageIndex, field });
 
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      console.error('[upload] tipo de archivo no permitido:', file.type);
+      setSaveStatus('error');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      console.error('[upload] archivo supera el limite de 100MB');
+      setSaveStatus('error');
+      return;
+    }
+
     setSaveStatus('saving');
     try {
-      const resizedFile = await resizeImage(file);
-      console.log('[upload] file after resize', { name: resizedFile.name, size: resizedFile.size });
+      const { original, web } = await prepareImage(file);
+      console.log('[upload] image prepared', {
+        originalSize: original.size,
+        webSize: web?.size ?? null,
+        hasWeb: !!web,
+      });
 
       const bucketName = 'assets';
-      const formData = new FormData();
-      formData.append('file', resizedFile);
-      formData.append('bucket', bucketName);
-      formData.append('folder', `${id}/${pageIndex}`);
-      console.log('[upload] formData prepared, invoking edge function');
+      const uuid = crypto.randomUUID();
+      const baseName = sanitizeName(file.name);
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const prefix = `${id}/${pageIndex}`;
+      const originalPath = `${prefix}/originals/${baseName}_${uuid}.${ext}`;
+      const webPath = `${prefix}/web/${baseName}_${uuid}.webp`;
 
-      const { data, error } = await supabase.functions.invoke('upload-image', {
-        body: formData,
-      });
-      console.log('[upload] edge function response', { data, error });
+      const [origResult, webResult] = await Promise.all([
+        supabase.storage.from(bucketName).upload(originalPath, original, {
+          contentType: file.type,
+          upsert: false,
+        }),
+        web
+          ? supabase.storage.from(bucketName).upload(webPath, web, {
+              contentType: 'image/webp',
+              upsert: false,
+            })
+          : Promise.resolve({ data: null, error: null }),
+      ]);
 
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Error en Edge Function');
+      if (origResult.error) throw new Error(`Error subiendo original: ${origResult.error.message}`);
+      if (web && webResult.error) {
+        console.warn('[upload] fallo el upload web, se usara el original', webResult.error);
+      }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(data.web.path);
-      console.log('[upload] public URL obtained', { publicUrl, webPath: data.web?.path });
-
-      const headResp = await fetch(publicUrl, { method: 'HEAD' });
-      console.log('[upload] storage HEAD check', { status: headResp.status, ok: headResp.ok });
+      const chosenPath = web && !webResult.error ? webPath : originalPath;
+      const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(chosenPath);
+      console.log('[upload] public URL obtained', { publicUrl, path: chosenPath });
 
       updatePage(pageIndex, field, publicUrl);
       setSaveStatus('saved');
