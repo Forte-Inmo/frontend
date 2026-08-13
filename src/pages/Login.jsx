@@ -29,7 +29,7 @@ export default function Login() {
       await refreshUser();
       navigate('/dashboard');
     } catch (err) {
-      console.error("Login error:", err);
+
       setError(err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);

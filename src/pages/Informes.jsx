@@ -144,7 +144,7 @@ export default function Informes() {
       localStorage.setItem('forte_informes_cache', JSON.stringify(infData));
       localStorage.setItem('forte_campos_cache', JSON.stringify(campData));
     } catch (error) {
-      console.error("Error fetching reports:", error);
+
     } finally {
       setLoading(false);
     }
@@ -164,13 +164,11 @@ export default function Informes() {
             .eq('id', selectedPlantillaId)
             .maybeSingle();
 
-          if (pError) console.warn('Error al leer plantilla:', pError);
-
           if (plantilla?.pages_data?.length > 0) {
             templatePages = JSON.parse(JSON.stringify(plantilla.pages_data));
           }
         } catch (e) {
-          console.warn('Error cargando plantilla:', e.message);
+
         }
       }
 
@@ -203,7 +201,7 @@ export default function Informes() {
       if (error) throw error;
       navigate(`/dashboard/builder/${data.id}`);
     } catch (error) {
-      console.error("Error creating report:", error);
+
     }
   };
 
@@ -217,7 +215,7 @@ export default function Informes() {
       if (error) throw error;
       setInformes(informes.filter(i => i.id !== id));
     } catch (error) {
-      console.error("Error deleting report:", error);
+
     }
   };
 
@@ -247,7 +245,7 @@ export default function Informes() {
         loadExports();
       }
     } catch (error) {
-      console.error('Error exportando PDF:', error);
+
       setExportProgress(prev => ({ ...prev, stage: 'error', error: error.message, logs: [...(prev?.logs || []), 'ERROR: ' + error.message] }));
     } finally {
       setExportingId(null);
@@ -269,7 +267,7 @@ export default function Informes() {
         loadExports();
       }
     } catch (error) {
-      console.error('Error exportando booklet A3:', error);
+
       setExportProgress(prev => ({ ...prev, stage: 'error', error: error.message, logs: [...(prev?.logs || []), 'ERROR: ' + error.message] }));
     } finally {
       setBookletingId(null);
@@ -282,7 +280,7 @@ export default function Informes() {
       const data = await getExports();
       setExports(data || []);
     } catch (e) {
-      console.error('Error loading exports:', e);
+
     } finally {
       setLoadingExports(false);
     }
@@ -311,7 +309,7 @@ export default function Informes() {
         setSelectedPlantillaId(sRes.data.default_plantilla_id);
       }
     } catch (e) {
-      console.warn('Error cargando plantillas:', e);
+
     }
   };
 

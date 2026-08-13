@@ -29,7 +29,7 @@ const savePlantilla = async (pagesData, setSaveStatus, id) => {
     if (error) throw error;
     setSaveStatus('saved');
   } catch (error) {
-    console.error('Error saving plantilla:', error);
+
     setSaveStatus('error');
   }
 };
@@ -91,7 +91,7 @@ export default function PlantillaBuilder() {
       setLoading(false);
       setTimeout(() => { isFirstLoad.current = false; }, 1000);
     } catch (error) {
-      console.error('Error fetching plantilla:', error);
+
       setLoading(false);
     }
   };
@@ -110,7 +110,7 @@ export default function PlantillaBuilder() {
       if (error) throw error;
       navigate(`/dashboard/plantillas/${data.id}`, { replace: true });
     } catch (error) {
-      console.error('Error creating plantilla:', error);
+
     }
   };
 
@@ -120,7 +120,7 @@ export default function PlantillaBuilder() {
     try {
       await supabase.from('plantillas').update({ nombre }).eq('id', id);
     } catch (error) {
-      console.error('Error saving name:', error);
+
     }
   };
 
@@ -852,7 +852,7 @@ export default function PlantillaBuilder() {
                                  };
                                  updatePage(activePageIndex, 'blocks', newBlocks);
                                } catch (err) {
-                                 console.error('Error importing file:', err);
+
                                  alert('Error al importar el archivo. Asegúrate de que sea un XLSX o CSV válido.');
                                }
                                e.target.value = '';

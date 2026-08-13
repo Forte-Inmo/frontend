@@ -19,16 +19,16 @@ export const SettingsProvider = ({ children }) => {
       if (error) {
         // Si la tabla no existe (42P01), capturamos el error para que no rompa la app
         if (error.code === '42P01') {
-          console.error("CRÍTICO: La tabla 'settings' no existe en Supabase. Revisa el SQL Editor.");
+
         } else {
-          console.error("Error cargando ajustes:", error.message);
+
         }
         setSettings(null);
       } else {
         setSettings(data);
       }
     } catch (error) {
-      console.error("Error inesperado en SettingsContext:", error);
+
       setSettings(null);
     } finally {
       setLoading(false);

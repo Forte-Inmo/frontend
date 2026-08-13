@@ -122,7 +122,7 @@ export default function Perfil() {
         setMfaFactorId(null);
       }
     } catch (err) {
-      console.error("Error checking MFA status:", err);
+
     }
   };
 
@@ -246,7 +246,7 @@ export default function Perfil() {
       await refreshUser();
       alert("Perfil actualizado correctamente");
     } catch (error) {
-      console.error("Error updating profile:", error);
+
       alert("Error: " + error.message);
     } finally {
       setLoading(false);

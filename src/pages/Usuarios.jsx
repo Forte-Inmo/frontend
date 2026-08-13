@@ -117,7 +117,7 @@ export default function Usuarios() {
       localStorage.setItem('forte_profiles_list_cache', JSON.stringify(pData));
       localStorage.setItem('forte_roles_cache', JSON.stringify(rData));
     } catch (error) {
-      console.error("Error fetching users:", error);
+
     } finally {
       setLoading(false);
     }

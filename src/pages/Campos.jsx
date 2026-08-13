@@ -231,7 +231,7 @@ export default function Campos() {
       setCampos(result);
       localStorage.setItem('forte_campos_cache', JSON.stringify(result));
     } catch (error) {
-      console.error('Supabase fetch error:', error);
+
     } finally {
       setLoading(false);
     }
@@ -277,7 +277,7 @@ export default function Campos() {
 
       handleClose();
     } catch (error) {
-      console.error('Supabase save error:', error);
+
       alert('Error al guardar: ' + error.message);
     }
   };
@@ -307,7 +307,7 @@ export default function Campos() {
       // Actualización local inmediata
       setCampos(prev => prev.filter(c => c.id !== id));
     } catch (error) {
-      console.error('Supabase delete error:', error);
+
     }
   };
 

@@ -39,7 +39,7 @@ export default function MapWidget() {
         setMapBounds(allCoords);
       }
     } catch (error) {
-      console.error("Error fetching dashboard map data:", error);
+
     }
   };
 

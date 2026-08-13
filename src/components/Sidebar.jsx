@@ -28,7 +28,7 @@ export default function Sidebar() {
       await forceLogout();
       navigate('/'); // Redirigir al login explícitamente
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+
     }
   };
 

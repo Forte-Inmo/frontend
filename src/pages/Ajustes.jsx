@@ -125,7 +125,7 @@ export default function Ajustes() {
         .order('nombre', { ascending: true });
       setPlantillas(data || []);
     } catch (error) {
-      console.error('Error fetching plantillas:', error);
+
     }
   };
 
@@ -137,7 +137,7 @@ export default function Ajustes() {
         .order('created_at', { ascending: false });
       setInformes(data || []);
     } catch (error) {
-      console.error('Error fetching informes:', error);
+
     }
   };
 
@@ -153,7 +153,7 @@ export default function Ajustes() {
       if (error) throw error;
       fetchPlantillas();
     } catch (error) {
-      console.error('Error deleting plantilla:', error);
+
     }
   };
 
@@ -179,7 +179,7 @@ export default function Ajustes() {
       setSelectedInformeId('');
       setTemplateName('');
     } catch (error) {
-      console.error('Error converting informe:', error);
+
       setConvertMessage({ type: 'error', text: 'Error al convertir el informe. Intentá de nuevo.' });
     } finally {
       setIsConverting(false);
@@ -212,7 +212,7 @@ export default function Ajustes() {
 
       setFormData((prev) => ({ ...prev, [fieldName]: publicUrl }));
     } catch (error) {
-      console.error('Supabase Upload Error:', error);
+
       alert('Error subiendo la imagen: ' + error.message);
     } finally {
       setUploading(false);
@@ -249,7 +249,7 @@ export default function Ajustes() {
       setSavedOk(true);
       setTimeout(() => setSavedOk(false), 3000);
     } catch (error) {
-      console.error('Supabase Save Error:', error);
+
       alert('Error guardando los ajustes: ' + error.message);
     } finally {
       setIsSaving(false);

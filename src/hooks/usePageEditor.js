@@ -239,20 +239,17 @@ export function usePageEditor({ id, saveFn }) {
     new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
   const prepareImage = (file, maxDimension = 2560, webQuality = 0.82) => {
-    console.log('[upload] prepareImage start', { name: file.name, size: file.size, type: file.type });
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = async () => {
         try {
           let { width, height } = img;
-          console.log('[upload] image loaded', { width, height });
           const needsResize = width > maxDimension || height > maxDimension;
           if (needsResize) {
             const ratio = maxDimension / Math.max(width, height);
             width = Math.round(width * ratio);
             height = Math.round(height * ratio);
-            console.log('[upload] resizing to', { width, height, ratio });
           }
 
           const canvas = document.createElement('canvas');
@@ -266,26 +263,20 @@ export function usePageEditor({ id, saveFn }) {
             const resizedBlob = await canvasToBlob(canvas, file.type, 0.85);
             if (resizedBlob) {
               original = new File([resizedBlob], file.name, { type: file.type });
-              console.log('[upload] resize done', { originalSize: file.size, newSize: original.size });
-            } else {
-              console.warn('[upload] toBlob returned null, keeping original file');
             }
           }
 
           const webBlob = await canvasToBlob(canvas, 'image/webp', webQuality);
           const web = webBlob && webBlob.type === 'image/webp' ? webBlob : null;
-          console.log('[upload] web version', { hasWeb: !!web, webSize: web?.size ?? null });
 
           URL.revokeObjectURL(url);
           resolve({ original, web });
-        } catch (err) {
-          console.error('[upload] prepare error', err);
+        } catch {
           URL.revokeObjectURL(url);
           resolve({ original: file, web: null });
         }
       };
-      img.onerror = (err) => {
-        console.error('[upload] image load error', err);
+      img.onerror = () => {
         URL.revokeObjectURL(url);
         resolve({ original: file, web: null });
       };
@@ -295,19 +286,13 @@ export function usePageEditor({ id, saveFn }) {
 
   const uploadImage = useCallback(async (e, pageIndex, field) => {
     const file = e.target.files[0];
-    if (!file) {
-      console.warn('[upload] no file selected');
-      return;
-    }
-    console.log('[upload] starting upload', { name: file.name, size: file.size, type: file.type, pageIndex, field });
+    if (!file) return;
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      console.error('[upload] tipo de archivo no permitido:', file.type);
       setSaveStatus('error');
       return;
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      console.error('[upload] archivo supera el limite de 100MB');
       setSaveStatus('error');
       return;
     }
@@ -315,11 +300,6 @@ export function usePageEditor({ id, saveFn }) {
     setSaveStatus('saving');
     try {
       const { original, web } = await prepareImage(file);
-      console.log('[upload] image prepared', {
-        originalSize: original.size,
-        webSize: web?.size ?? null,
-        hasWeb: !!web,
-      });
 
       const bucketName = 'assets';
       const uuid = crypto.randomUUID();
@@ -343,19 +323,13 @@ export function usePageEditor({ id, saveFn }) {
       ]);
 
       if (origResult.error) throw new Error(`Error subiendo original: ${origResult.error.message}`);
-      if (web && webResult.error) {
-        console.warn('[upload] fallo el upload web, se usara el original', webResult.error);
-      }
 
       const chosenPath = web && !webResult.error ? webPath : originalPath;
       const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(chosenPath);
-      console.log('[upload] public URL obtained', { publicUrl, path: chosenPath });
 
       updatePage(pageIndex, field, publicUrl);
       setSaveStatus('saved');
-      console.log('[upload] upload complete');
     } catch (error) {
-      console.error('[upload] upload error:', error);
       setSaveStatus('error');
     }
   }, [id, updatePage]);

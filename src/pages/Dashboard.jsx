@@ -47,7 +47,7 @@ export default function Dashboard() {
 
       setRecentInformes(recentRes.data || []);
     } catch (error) {
-      console.error("Error loading dashboard stats:", error);
+
     } finally {
       setLoading(false);
     }

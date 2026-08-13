@@ -80,7 +80,7 @@ export default function InformeBuilder() {
       if (error) throw error;
       setStatus('saved');
     } catch (error) {
-      console.error('Error saving informe:', error);
+
       setStatus('error');
     }
   }, [id]);
@@ -143,7 +143,7 @@ export default function InformeBuilder() {
       setLoading(false);
       setTimeout(() => { isFirstLoad.current = false; }, 1000);
     } catch (error) {
-      console.error('Error fetching informe:', error);
+
       setLoading(false);
     }
   };
@@ -163,7 +163,7 @@ export default function InformeBuilder() {
           });
           window.close();
         } catch (error) {
-          console.error("Error en auto-export:", error);
+
         }
       }, 3000);
       return () => clearTimeout(timer);
@@ -957,7 +957,7 @@ export default function InformeBuilder() {
                                  };
                                  handleUpdatePage(activePageIndex, 'blocks', newBlocks);
                                } catch (err) {
-                                 console.error('Error importing file:', err);
+
                                  alert('Error al importar el archivo. Asegúrate de que sea un XLSX o CSV válido.');
                                }
                                e.target.value = '';

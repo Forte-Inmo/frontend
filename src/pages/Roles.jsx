@@ -54,7 +54,7 @@ export default function Roles() {
       setRoles(result);
       localStorage.setItem('forte_roles_cache', JSON.stringify(result));
     } catch (error) {
-      console.error("Error fetching Supabase roles:", error);
+
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function Roles() {
       setRoles(roles.map(r => r.id === selectedRole.id ? updatedRole : r));
       handleClose();
     } catch (error) {
-      console.error("Error saving Supabase permission:", error);
+
     }
   };
 
@@ -120,7 +120,7 @@ export default function Roles() {
       setRoles(prev => [...prev, data]);
       handleClose();
     } catch (error) {
-      console.error("Error creating Supabase role:", error);
+
     }
   };
 
@@ -134,7 +134,7 @@ export default function Roles() {
       if (error) throw error;
       setRoles(prev => prev.filter(r => r.id !== roleId));
     } catch (error) {
-      console.error("Error deleting Supabase role:", error);
+
     }
   };
 

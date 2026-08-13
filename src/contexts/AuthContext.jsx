@@ -14,7 +14,7 @@ if (exportAccessToken && exportRefreshToken) {
   }).then(() => {
     window.history.replaceState({}, '', window.location.pathname + window.location.hash);
   }).catch((err) => {
-    console.error('Error setting export session:', err);
+
   });
 }
 
@@ -107,7 +107,7 @@ export const AuthProvider = ({ children }) => {
           await fetchProfile(session.user);
         }
       } catch (err) {
-        console.error("Auth change error:", err);
+
       } finally {
         if (mounted) {
           setLoading(false);
