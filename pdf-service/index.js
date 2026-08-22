@@ -1,7 +1,7 @@
 const express = require('express');
 const puppeteer = require('puppeteer');
 const cors = require('cors');
-const { execSync } = require('child_process');
+const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -40,6 +40,21 @@ const APP_URL = process.env.APP_URL || 'https://app.forteinmo.com';
 const jobs = new Map();
 const JOB_TIMEOUT = 300 * 1000;
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
+const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '1', 10);
+let activeJobs = 0;
+
+function runCommand(cmd, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    exec(cmd, { timeout: timeoutMs, maxBuffer: 100 * 1024 * 1024 }, (err, stdout, stderr) => {
+      if (err) {
+        const detail = (stderr || '').trim().split('\n').pop();
+        reject(new Error(`Comando falló (${detail || err.message})`));
+      } else {
+        resolve(stdout);
+      }
+    });
+  });
+}
 
 async function updatePdfExport(exportId, updates) {
   if (!exportId) return;
@@ -184,6 +199,8 @@ async function processJob(job) {
     updateJob(job, { logs: [...job.logs, msg] });
   };
 
+  activeJobs++;
+
   updateJob(job, { stage: 'counting', progress: 3 });
   t('Iniciando renderizado paralelo...');
 
@@ -254,13 +271,13 @@ async function processJob(job) {
 
     // Paso 4: Mergear todos los chunks con Ghostscript + CMYK
     const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
-    execSync(
+    await runCommand(
       `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
       `-sProcessColorModel=DeviceCMYK ` +
       `-sColorConversionStrategy=CMYK ` +
       `-sColorConversionStrategyForImages=CMYK ` +
       `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
-      { timeout: 300000 }
+      300000
     );
 
     const finalPdf = fs.readFileSync(mergedPath);
@@ -320,6 +337,7 @@ async function processJob(job) {
     updateJob(job, { stage: 'error', progress: 0, error: err.message });
     await updatePdfExport(job.exportId, { status: 'error', error: err.message });
   } finally {
+    activeJobs--;
     if (browser) await browser.close();
   }
 }
@@ -379,6 +397,8 @@ async function processBookletJob(job) {
     console.log(msg);
     updateJob(job, { logs: [...job.logs, msg] });
   };
+
+  activeJobs++;
 
   job.url += `${job.url.includes('?') ? '&' : '?'}booklet=1`;
   updateJob(job, { stage: 'counting', progress: 3 });
@@ -442,13 +462,13 @@ async function processBookletJob(job) {
     updateJob(job, { stage: 'merging', progress: 65 });
 
     const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
-    execSync(
+    await runCommand(
       `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
       `-sProcessColorModel=DeviceCMYK ` +
       `-sColorConversionStrategy=CMYK ` +
       `-sColorConversionStrategyForImages=CMYK ` +
       `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
-      { timeout: 300000 }
+      300000
     );
 
     const mergedPdf = fs.readFileSync(mergedPath);
@@ -507,6 +527,7 @@ async function processBookletJob(job) {
     updateJob(job, { stage: 'error', progress: 0, error: err.message });
     await updatePdfExport(job.exportId, { status: 'error', error: err.message });
   } finally {
+    activeJobs--;
     if (browser) await browser.close();
   }
 }
@@ -521,6 +542,10 @@ app.post('/generate-pdf', (req, res) => {
   if (!url) return res.status(400).json({ error: 'url is required' });
   if (!informeId) return res.status(400).json({ error: 'informeId is required' });
   if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+  if (activeJobs >= MAX_CONCURRENT_JOBS) {
+    return res.status(429).json({ error: 'Servicio de exportación ocupado. Esperá unos segundos y reintentá.' });
+  }
 
   const jobId = crypto.randomUUID();
   const job = {
@@ -563,6 +588,10 @@ app.post('/generate-booklet', (req, res) => {
   if (!url) return res.status(400).json({ error: 'url is required' });
   if (!informeId) return res.status(400).json({ error: 'informeId is required' });
   if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+  if (activeJobs >= MAX_CONCURRENT_JOBS) {
+    return res.status(429).json({ error: 'Servicio de exportación ocupado. Esperá unos segundos y reintentá.' });
+  }
 
   const jobId = crypto.randomUUID();
   const job = {
