@@ -38,7 +38,7 @@ const SMTP_FROM = process.env.SMTP_FROM || 'noreply@forteinmo.com';
 const APP_URL = process.env.APP_URL || 'https://app.forteinmo.com';
 
 const jobs = new Map();
-const JOB_TIMEOUT = 300 * 1000;
+const JOB_TIMEOUT = parseInt(process.env.JOB_TIMEOUT || '600', 10) * 1000;
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
 const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '1', 10);
 let activeJobs = 0;
@@ -54,6 +54,24 @@ function runCommand(cmd, timeoutMs) {
       }
     });
   });
+}
+
+async function runCommandWithProgress(job, label, cmd, timeoutMs, { startProgress = 65, endProgress = 70 } = {}) {
+  const startedAt = Date.now();
+  let progress = startProgress;
+  const heartbeat = setInterval(() => {
+    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+    progress = Math.min(endProgress, progress + 1);
+    const msg = `[${((Date.now() - job.createdAt) / 1000).toFixed(1)}s] ${label} (${elapsed}s)... ${progress}%`;
+    console.log(msg);
+    updateJob(job, { logs: [...job.logs, msg], progress });
+  }, 5000);
+
+  try {
+    return await runCommand(cmd, timeoutMs);
+  } finally {
+    clearInterval(heartbeat);
+  }
 }
 
 async function updatePdfExport(exportId, updates) {
@@ -271,13 +289,14 @@ async function processJob(job) {
 
     // Paso 4: Mergear todos los chunks con Ghostscript + CMYK
     const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
-    await runCommand(
+    await runCommandWithProgress(job, 'Mergeando con Ghostscript', 
       `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
       `-sProcessColorModel=DeviceCMYK ` +
       `-sColorConversionStrategy=CMYK ` +
       `-sColorConversionStrategyForImages=CMYK ` +
       `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
-      300000
+      300000,
+      { startProgress: 88, endProgress: 92 }
     );
 
     const finalPdf = fs.readFileSync(mergedPath);
@@ -462,13 +481,14 @@ async function processBookletJob(job) {
     updateJob(job, { stage: 'merging', progress: 65 });
 
     const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
-    await runCommand(
+    await runCommandWithProgress(job, 'Mergeando con Ghostscript', 
       `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
       `-sProcessColorModel=DeviceCMYK ` +
       `-sColorConversionStrategy=CMYK ` +
       `-sColorConversionStrategyForImages=CMYK ` +
       `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
-      300000
+      300000,
+      { startProgress: 65, endProgress: 68 }
     );
 
     const mergedPdf = fs.readFileSync(mergedPath);
@@ -533,8 +553,8 @@ async function processBookletJob(job) {
 }
 
 function updateJob(job, updates) {
-  const updated = { ...job, ...updates };
-  jobs.set(job.id, updated);
+  Object.assign(job, updates);
+  jobs.set(job.id, job);
 }
 
 app.post('/generate-pdf', (req, res) => {

@@ -80,7 +80,7 @@ export function useExportBooklet() {
 
     let done = false;
     let attempts = 0;
-    const maxAttempts = 120;
+    const maxAttempts = 300;
 
     while (!done && attempts < maxAttempts) {
       await new Promise(r => setTimeout(r, 1000));
@@ -122,7 +122,7 @@ export function useExportBooklet() {
       }
     }
 
-    if (!done) throw new Error('Tiempo de espera agotado (120s)');
+    if (!done) throw new Error('Tiempo de espera agotado (300s)');
   };
 
   return { exportBooklet };
