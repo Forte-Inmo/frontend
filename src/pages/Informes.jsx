@@ -141,6 +141,13 @@ export default function Informes() {
       setInformes(infData);
       setCampos(campData);
 
+      const ids = infData.map(i => i.id);
+      if (ids.length) {
+        checkExistingBulk(ids).then(setExistingStatus).catch(() => setExistingStatus({}));
+      } else {
+        setExistingStatus({});
+      }
+
       localStorage.setItem('forte_informes_cache', JSON.stringify(infData));
       localStorage.setItem('forte_campos_cache', JSON.stringify(campData));
     } catch (error) {
@@ -224,11 +231,12 @@ export default function Informes() {
     i.campos?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const { exportPDF, checkExistingExport, downloadExisting, getExports } = useExportPDF();
+  const { exportPDF, checkExistingExport, checkExistingBulk, downloadExisting, getExports } = useExportPDF();
   const { exportBooklet, checkExistingExport: checkExistingBooklet, downloadExisting: downloadExistingBooklet } = useExportBooklet();
   const [exportingId, setExportingId] = useState(null);
   const [bookletingId, setBookletingId] = useState(null);
   const [exportProgress, setExportProgress] = useState(null);
+  const [existingStatus, setExistingStatus] = useState({});
 
   const handleExport = async (informe) => {
     setExportingId(informe.id);
@@ -237,9 +245,10 @@ export default function Informes() {
       const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}.pdf`.replace(/\s+/g, '_');
       const existing = await checkExistingExport(informe.id, { type: 'pdf' });
       if (existing.exists && existing.fresh && existing.signedUrl) {
-        setExportProgress({ stage: 'done', progress: 100, logs: ['No hubo cambios desde la última exportación. Descargando PDF existente...'], error: null });
+        setExportProgress({ stage: 'downloading', progress: 100, logs: ['No hubo cambios desde la última exportación. Descargando PDF existente...'], error: null });
         await downloadExisting(existing.signedUrl, filename);
-        setExportProgress(null);
+        setExportProgress({ stage: 'done', progress: 100, logs: ['PDF existente descargado.'], error: null });
+        setTimeout(() => setExportProgress(null), 1500);
         return;
       }
       await exportPDF({
@@ -266,9 +275,10 @@ export default function Informes() {
       const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}-revista.pdf`.replace(/\s+/g, '_');
       const existing = await checkExistingBooklet(informe.id, { type: 'booklet' });
       if (existing.exists && existing.fresh && existing.signedUrl) {
-        setExportProgress({ stage: 'done', progress: 100, logs: ['No hubo cambios desde la última exportación. Descargando revista existente...'], error: null });
+        setExportProgress({ stage: 'downloading', progress: 100, logs: ['No hubo cambios desde la última exportación. Descargando revista existente...'], error: null });
         await downloadExistingBooklet(existing.signedUrl, filename);
-        setExportProgress(null);
+        setExportProgress({ stage: 'done', progress: 100, logs: ['Revista existente descargada.'], error: null });
+        setTimeout(() => setExportProgress(null), 1500);
         return;
       }
       await exportBooklet({
@@ -528,14 +538,14 @@ export default function Informes() {
                       className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:border-emerald-500"
                     >
                       {exportingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                      <span>{exportingId === informe.id ? 'Generando...' : 'Exportar PDF'}</span>
+                      <span>{exportingId === informe.id ? 'Generando...' : existingStatus[informe.id]?.pdf?.fresh ? 'Descargar PDF' : 'Exportar PDF'}</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleExportBooklet(informe); }}
                       className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:border-blue-500"
                     >
                       {bookletingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                      <span>{bookletingId === informe.id ? 'Generando...' : 'Revista A3'}</span>
+                      <span>{bookletingId === informe.id ? 'Generando...' : existingStatus[informe.id]?.booklet?.fresh ? 'Descargar Revista' : 'Revista A3'}</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleVerVersiones(informe); }}
@@ -763,7 +773,7 @@ export default function Informes() {
             <div className="p-6 space-y-5">
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <span>{exportProgress.error ? 'Error' : exportProgress.stage === 'done' ? 'Completado' : 'Procesando...'}</span>
+                  <span>{exportProgress.error ? 'Error' : exportProgress.stage === 'done' ? 'Completado' : exportProgress.stage === 'downloading' ? 'Descargando...' : 'Procesando...'}</span>
                   <span>{exportProgress.progress}%</span>
                 </div>
                 <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">

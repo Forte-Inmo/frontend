@@ -137,6 +137,7 @@ export function useExportBooklet() {
   };
 
   const downloadExisting = async (signedUrl, filename) => {
+    console.log('[ExportBooklet] descargando revista existente...');
     const res = await fetch(signedUrl);
     if (!res.ok) throw new Error('Error descargando booklet existente');
     const blob = await res.blob();
@@ -145,6 +146,7 @@ export function useExportBooklet() {
     a.href = url;
     a.download = filename || 'informe-revista.pdf';
     a.click();
+    console.log('[ExportBooklet] descarga iniciada');
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 

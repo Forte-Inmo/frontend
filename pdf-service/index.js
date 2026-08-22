@@ -726,6 +726,60 @@ app.get('/check-existing/:informeId/:userId', async (req, res) => {
   res.json({ exists: false, fresh: false });
 });
 
+app.get('/check-existing-bulk/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const ids = (req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (!ids.length) return res.json({});
+
+  try {
+    const [{ data: informes }, { data: settings }] = await Promise.all([
+      supabase
+        .from('informes')
+        .select('id, updated_at, campo:campos(updated_at)')
+        .in('id', ids),
+      supabase.from('settings').select('updated_at').maybeSingle(),
+    ]);
+
+    const settingsT = settings?.updated_at ? new Date(settings.updated_at).getTime() : 0;
+    const refByInforme = {};
+    for (const inf of informes || []) {
+      const dates = [inf.updated_at, inf.campo?.updated_at]
+        .filter(Boolean)
+        .map(d => new Date(d).getTime());
+      dates.push(settingsT);
+      refByInforme[inf.id] = dates.length ? new Date(Math.max(...dates)) : new Date(0);
+    }
+
+    const { data: exportRows } = await supabase
+      .from('pdf_exports')
+      .select('informe_id, format, storage_path, completed_at')
+      .eq('user_id', userId)
+      .eq('status', 'done')
+      .in('informe_id', ids);
+
+    const result = {};
+    for (const id of ids) {
+      const status = {};
+      for (const fmt of ['pdf', 'booklet']) {
+        let best = null;
+        for (const m of (exportRows || [])) {
+          if (m.informe_id === id && m.format === fmt && m.completed_at) {
+            if (!best || new Date(m.completed_at) > new Date(best.completed_at)) best = m;
+          }
+        }
+        const fresh = !!best && !!best.storage_path &&
+          new Date(best.completed_at) >= (refByInforme[id] || new Date(0));
+        status[fmt] = { exists: !!best, fresh };
+      }
+      result[id] = status;
+    }
+    res.json(result);
+  } catch (err) {
+    console.error('check-existing-bulk error:', err.message);
+    res.json({});
+  }
+});
+
 app.get('/exports/:userId', async (req, res) => {
   const { userId } = req.params;
   const { data, error } = await supabase

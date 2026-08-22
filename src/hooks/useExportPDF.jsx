@@ -137,7 +137,18 @@ export function useExportPDF() {
     return res.json();
   };
 
+  const checkExistingBulk = async (informeIds) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId || !informeIds?.length) return {};
+    const baseUrl = import.meta.env.VITE_PDF_SERVICE_URL;
+    const res = await fetch(`${baseUrl}/check-existing-bulk/${userId}?ids=${informeIds.join(',')}`);
+    if (!res.ok) return {};
+    return res.json();
+  };
+
   const downloadExisting = async (signedUrl, filename) => {
+    console.log('[ExportPDF] descargando PDF existente...');
     const res = await fetch(signedUrl);
     if (!res.ok) throw new Error('Error descargando PDF existente');
     const blob = await res.blob();
@@ -146,6 +157,7 @@ export function useExportPDF() {
     a.href = url;
     a.download = filename || 'informe.pdf';
     a.click();
+    console.log('[ExportPDF] descarga iniciada');
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
@@ -160,5 +172,5 @@ export function useExportPDF() {
     return res.json();
   };
 
-  return { exportPDF, checkExistingExport, downloadExisting, getExports };
+  return { exportPDF, checkExistingExport, checkExistingBulk, downloadExisting, getExports };
 }
