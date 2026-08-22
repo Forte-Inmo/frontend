@@ -42,6 +42,24 @@ const JOB_TIMEOUT = parseInt(process.env.JOB_TIMEOUT || '600', 10) * 1000;
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
 const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '1', 10);
 let activeJobs = 0;
+const jobQueue = [];
+
+async function runExclusive(job, worker) {
+  if (activeJobs >= MAX_CONCURRENT_JOBS) {
+    jobQueue.push({ job, worker });
+    console.log(`Job ${job.id} encolado (${activeJobs}/${MAX_CONCURRENT_JOBS} activos, ${jobQueue.length} en cola)`);
+    updateJob(job, { progress: 1, logs: [...job.logs, `En cola de espera (${jobQueue.length} delante)...`] });
+    return;
+  }
+  activeJobs++;
+  try {
+    await worker(job);
+  } finally {
+    activeJobs--;
+    const next = jobQueue.shift();
+    if (next) runExclusive(next.job, next.worker);
+  }
+}
 
 function runCommand(cmd, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -217,8 +235,6 @@ async function processJob(job) {
     updateJob(job, { logs: [...job.logs, msg] });
   };
 
-  activeJobs++;
-
   updateJob(job, { stage: 'counting', progress: 3 });
   t('Iniciando renderizado paralelo...');
 
@@ -356,7 +372,6 @@ async function processJob(job) {
     updateJob(job, { stage: 'error', progress: 0, error: err.message });
     await updatePdfExport(job.exportId, { status: 'error', error: err.message });
   } finally {
-    activeJobs--;
     if (browser) await browser.close();
   }
 }
@@ -416,8 +431,6 @@ async function processBookletJob(job) {
     console.log(msg);
     updateJob(job, { logs: [...job.logs, msg] });
   };
-
-  activeJobs++;
 
   job.url += `${job.url.includes('?') ? '&' : '?'}booklet=1`;
   updateJob(job, { stage: 'counting', progress: 3 });
@@ -547,7 +560,6 @@ async function processBookletJob(job) {
     updateJob(job, { stage: 'error', progress: 0, error: err.message });
     await updatePdfExport(job.exportId, { status: 'error', error: err.message });
   } finally {
-    activeJobs--;
     if (browser) await browser.close();
   }
 }
@@ -563,10 +575,6 @@ app.post('/generate-pdf', (req, res) => {
   if (!informeId) return res.status(400).json({ error: 'informeId is required' });
   if (!userId) return res.status(400).json({ error: 'userId is required' });
 
-  if (activeJobs >= MAX_CONCURRENT_JOBS) {
-    return res.status(429).json({ error: 'Servicio de exportación ocupado. Esperá unos segundos y reintentá.' });
-  }
-
   const jobId = crypto.randomUUID();
   const job = {
     id: jobId,
@@ -600,7 +608,7 @@ app.post('/generate-pdf', (req, res) => {
     });
 
   res.json({ jobId });
-  processJob(job);
+  runExclusive(job, processJob);
 });
 
 app.post('/generate-booklet', (req, res) => {
@@ -609,10 +617,6 @@ app.post('/generate-booklet', (req, res) => {
   if (!informeId) return res.status(400).json({ error: 'informeId is required' });
   if (!userId) return res.status(400).json({ error: 'userId is required' });
 
-  if (activeJobs >= MAX_CONCURRENT_JOBS) {
-    return res.status(429).json({ error: 'Servicio de exportación ocupado. Esperá unos segundos y reintentá.' });
-  }
-
   const jobId = crypto.randomUUID();
   const job = {
     id: jobId,
@@ -646,7 +650,7 @@ app.post('/generate-booklet', (req, res) => {
     });
 
   res.json({ jobId });
-  processBookletJob(job);
+  runExclusive(job, processBookletJob);
 });
 
 app.get('/pdf-status/:jobId', (req, res) => {
