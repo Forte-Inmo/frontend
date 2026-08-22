@@ -154,23 +154,8 @@ async function sendEmail(recipientEmail, downloadUrl, informeTitle) {
   }
 }
 
-async function renderChunk(job, { from, to }) {
+async function renderChunk(job, { from, to }, browser) {
   const chunkUrl = `${job.url}${job.url.includes('?') ? '&' : '?'}from=${from}&to=${to}`;
-
-  const browser = await puppeteer.launch({
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--font-render-hinting=none',
-      '--force-color-profile=srgb',
-      '--disable-lcd-text',
-      '--disable-gpu',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process',
-    ],
-    headless: true,
-  });
 
   const page = await browser.newPage();
   page.on('console', (msg) => {
@@ -219,7 +204,7 @@ async function renderChunk(job, { from, to }) {
     ),
   ]);
 
-  await browser.close();
+  await page.close();
 
   const tmpPath = path.join('/tmp', `chunk-${job.id}-${from}-${to}.pdf`);
   fs.writeFileSync(tmpPath, pdf);
@@ -273,8 +258,7 @@ async function processJob(job) {
     pageCount = await countPage.evaluate(() =>
       document.querySelectorAll('[data-page-index]').length
     );
-    await browser.close();
-    browser = null;
+    await countPage.close();
     t(`Total páginas detectadas: ${pageCount}`);
 
     if (pageCount === 0) {
@@ -291,15 +275,15 @@ async function processJob(job) {
     }
     t(`Dividido en ${chunks.length} chunks de hasta ${CHUNK_SIZE} páginas cada uno: ${chunks.map(c => `${c.from}-${c.to}`).join(', ')}`);
 
-    // Paso 3: Lanzar todos los chunks en paralelo
-    const chunkPaths = await Promise.all(chunks.map((chunk, idx) =>
-      (async () => {
-        const tmpPath = await renderChunk(job, chunk);
-        const progress = 10 + ((idx + 1) / chunks.length) * 75;
-        updateJob(job, { progress: Math.round(progress) });
-        return tmpPath;
-      })()
-    ));
+    // Paso 3: Renderizar chunks en serie con un solo browser (evita OOM)
+    const chunkPaths = [];
+    for (let idx = 0; idx < chunks.length; idx++) {
+      const tmpPath = await renderChunk(job, chunks[idx], browser);
+      chunkPaths.push(tmpPath);
+      const progress = 10 + ((idx + 1) / chunks.length) * 75;
+      updateJob(job, { progress: Math.round(progress) });
+      t(`Chunk ${chunks[idx].from}-${chunks[idx].to} listo (${idx + 1}/${chunks.length})`);
+    }
     t('Todos los chunks generados, mergeando con Ghostscript...');
     updateJob(job, { stage: 'merging', progress: 88 });
 
@@ -465,8 +449,7 @@ async function processBookletJob(job) {
     pageCount = await countPage.evaluate(() =>
       document.querySelectorAll('[data-page-index]').length
     );
-    await browser.close();
-    browser = null;
+    await countPage.close();
     t(`Total páginas detectadas: ${pageCount}`);
 
     if (pageCount === 0) {
@@ -482,14 +465,14 @@ async function processBookletJob(job) {
     }
     t(`Dividido en ${chunks.length} chunks de hasta ${CHUNK_SIZE} páginas: ${chunks.map(c => `${c.from}-${c.to}`).join(', ')}`);
 
-    const chunkPaths = await Promise.all(chunks.map((chunk, idx) =>
-      (async () => {
-        const tmpPath = await renderChunk(job, chunk);
-        const progress = 10 + ((idx + 1) / chunks.length) * 55;
-        updateJob(job, { progress: Math.round(progress) });
-        return tmpPath;
-      })()
-    ));
+    const chunkPaths = [];
+    for (let idx = 0; idx < chunks.length; idx++) {
+      const tmpPath = await renderChunk(job, chunks[idx], browser);
+      chunkPaths.push(tmpPath);
+      const progress = 10 + ((idx + 1) / chunks.length) * 55;
+      updateJob(job, { progress: Math.round(progress) });
+      t(`Chunk ${chunks[idx].from}-${chunks[idx].to} listo (${idx + 1}/${chunks.length})`);
+    }
     t('Todos los chunks generados, mergeando con Ghostscript...');
     updateJob(job, { stage: 'merging', progress: 65 });
 
