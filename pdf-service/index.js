@@ -78,13 +78,13 @@ function runCommand(cmd, timeoutMs) {
   });
 }
 
-async function runCommandWithProgress(job, label, cmd, timeoutMs, { startProgress = 65, endProgress = 70 } = {}) {
+async function runCommandWithProgress(job, label, cmd, timeoutMs, { startProgress = 65 } = {}) {
   const startedAt = Date.now();
-  let progress = startProgress;
   const heartbeat = setInterval(() => {
-    const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
-    progress = Math.min(endProgress, progress + 1);
-    const msg = `[${((Date.now() - job.createdAt) / 1000).toFixed(1)}s] ${label} (${elapsed}s)... ${progress}%`;
+    const elapsed = (Date.now() - startedAt) / 1000;
+    const tNorm = 1 - Math.exp(-elapsed / 45);
+    const progress = Math.min(99, Math.round(startProgress + (99 - startProgress) * tNorm));
+    const msg = `[${((Date.now() - job.createdAt) / 1000).toFixed(1)}s] ${label} (${elapsed.toFixed(0)}s)... ${progress}%`;
     console.log(msg);
     updateJob(job, { logs: [...job.logs, msg], progress });
   }, 5000);
@@ -292,16 +292,13 @@ async function processJob(job) {
     t('Todos los chunks generados, mergeando con Ghostscript...');
     updateJob(job, { stage: 'merging', progress: 88 });
 
-    // Paso 4: Mergear todos los chunks con Ghostscript + CMYK
+    // Paso 4: Mergear los chunks con Ghostscript (A4 en RGB, sin conversión)
     const mergedPath = path.join('/tmp', `merged-${job.id}.pdf`);
     await runCommandWithProgress(job, 'Mergeando con Ghostscript', 
       `gs -dNOPAUSE -dBATCH -sDEVICE=pdfwrite ` +
-      `-sProcessColorModel=DeviceCMYK ` +
-      `-sColorConversionStrategy=CMYK ` +
-      `-sColorConversionStrategyForImages=CMYK ` +
-      `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
+      `-o ${mergedPath} ${chunkPaths.join(' ')}`,
       300000,
-      { startProgress: 88, endProgress: 92 }
+      { startProgress: 88 }
     );
 
     const finalPdf = fs.readFileSync(mergedPath);
@@ -490,7 +487,7 @@ async function processBookletJob(job) {
       `-sColorConversionStrategyForImages=CMYK ` +
       `-dOverrideICC -o ${mergedPath} ${chunkPaths.join(' ')}`,
       300000,
-      { startProgress: 65, endProgress: 68 }
+      { startProgress: 65 }
     );
 
     const mergedPdf = fs.readFileSync(mergedPath);
@@ -672,21 +669,27 @@ app.get('/check-existing/:informeId/:userId', async (req, res) => {
   const { informeId, userId } = req.params;
   const type = req.query.type || 'pdf';
 
-  const [{ data: informe, error: iErr }, { data: settings, error: sErr }] = await Promise.all([
-    supabase
-      .from('informes')
-      .select('updated_at, campo:campos(updated_at)')
-      .eq('id', informeId)
-      .maybeSingle(),
-    supabase.from('settings').select('updated_at').maybeSingle(),
-  ]);
-  if (iErr) return res.status(500).json({ error: iErr.message });
-  if (sErr) return res.status(500).json({ error: sErr.message });
-
-  const dates = [informe?.updated_at, informe?.campo?.updated_at, settings?.updated_at]
-    .filter(Boolean)
-    .map(d => new Date(d).getTime());
-  const reference = dates.length ? new Date(Math.max(...dates)) : new Date(0);
+  let reference = new Date(0);
+  try {
+    const [{ data: informe, error: iErr }, { data: settings, error: sErr }] = await Promise.all([
+      supabase
+        .from('informes')
+        .select('updated_at, campo:campos(updated_at)')
+        .eq('id', informeId)
+        .maybeSingle(),
+      supabase.from('settings').select('updated_at').maybeSingle(),
+    ]);
+    if (iErr || sErr) {
+      console.error('check-existing: no se pudo calcular referencia:', iErr?.message || sErr?.message);
+    } else {
+      const dates = [informe?.updated_at, informe?.campo?.updated_at, settings?.updated_at]
+        .filter(Boolean)
+        .map(d => new Date(d).getTime());
+      if (dates.length) reference = new Date(Math.max(...dates));
+    }
+  } catch (err) {
+    console.error('check-existing: error calculando referencia, usando fresh sin comparar:', err.message);
+  }
 
   const { data, error } = await supabase
     .from('pdf_exports')
