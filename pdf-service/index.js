@@ -63,10 +63,14 @@ async function runExclusive(job, worker) {
 
 function runCommand(cmd, timeoutMs) {
   return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
     exec(cmd, { timeout: timeoutMs, maxBuffer: 100 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
-        const detail = (stderr || '').trim().split('\n').pop();
-        reject(new Error(`Comando falló (${detail || err.message})`));
+        const elapsed = ((Date.now() - startedAt) / 1000).toFixed(0);
+        const lines = (stderr || '').split('\n').map(s => s.trim()).filter(Boolean);
+        const detail = lines.slice(-10).join(' | ') || err.message;
+        const killInfo = err.killed ? ' (killed/timeout)' : (err.signal ? ` (signal ${err.signal})` : '');
+        reject(new Error(`Comando falló (${elapsed}s${killInfo}): ${detail}`));
       } else {
         resolve(stdout);
       }
@@ -284,6 +288,7 @@ async function processJob(job) {
       updateJob(job, { progress: Math.round(progress) });
       t(`Chunk ${chunks[idx].from}-${chunks[idx].to} listo (${idx + 1}/${chunks.length})`);
     }
+    if (browser) { await browser.close(); browser = null; }
     t('Todos los chunks generados, mergeando con Ghostscript...');
     updateJob(job, { stage: 'merging', progress: 88 });
 
@@ -473,6 +478,7 @@ async function processBookletJob(job) {
       updateJob(job, { progress: Math.round(progress) });
       t(`Chunk ${chunks[idx].from}-${chunks[idx].to} listo (${idx + 1}/${chunks.length})`);
     }
+    if (browser) { await browser.close(); browser = null; }
     t('Todos los chunks generados, mergeando con Ghostscript...');
     updateJob(job, { stage: 'merging', progress: 65 });
 
