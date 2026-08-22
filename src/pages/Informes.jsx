@@ -224,8 +224,8 @@ export default function Informes() {
     i.campos?.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const { exportPDF, checkExistingExport, getExports } = useExportPDF();
-  const { exportBooklet } = useExportBooklet();
+  const { exportPDF, checkExistingExport, downloadExisting, getExports } = useExportPDF();
+  const { exportBooklet, checkExistingExport: checkExistingBooklet, downloadExisting: downloadExistingBooklet } = useExportBooklet();
   const [exportingId, setExportingId] = useState(null);
   const [bookletingId, setBookletingId] = useState(null);
   const [exportProgress, setExportProgress] = useState(null);
@@ -235,6 +235,13 @@ export default function Informes() {
     setExportProgress({ stage: 'pending', progress: 0, logs: ['Iniciando...'], error: null });
     try {
       const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}.pdf`.replace(/\s+/g, '_');
+      const existing = await checkExistingExport(informe.id, { type: 'pdf' });
+      if (existing.exists && existing.fresh && existing.signedUrl) {
+        setExportProgress({ stage: 'done', progress: 100, logs: ['No hubo cambios desde la última exportación. Descargando PDF existente...'], error: null });
+        await downloadExisting(existing.signedUrl, filename);
+        setExportProgress(null);
+        return;
+      }
       await exportPDF({
         informeId: informe.id,
         filename,
@@ -257,6 +264,13 @@ export default function Informes() {
     setExportProgress({ stage: 'pending', progress: 0, logs: ['Iniciando exportación revista...'], error: null });
     try {
       const filename = `${informe.titulo || 'Informe'}-${informe.campos?.nombre || 'Terreno'}-revista.pdf`.replace(/\s+/g, '_');
+      const existing = await checkExistingBooklet(informe.id, { type: 'booklet' });
+      if (existing.exists && existing.fresh && existing.signedUrl) {
+        setExportProgress({ stage: 'done', progress: 100, logs: ['No hubo cambios desde la última exportación. Descargando revista existente...'], error: null });
+        await downloadExistingBooklet(existing.signedUrl, filename);
+        setExportProgress(null);
+        return;
+      }
       await exportBooklet({
         informeId: informe.id,
         filename,

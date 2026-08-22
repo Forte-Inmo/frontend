@@ -189,7 +189,7 @@ export default function InformeBuilder() {
 
   useEffect(() => {
     if (id && !loading) {
-      checkExistingExport(id).then(result => {
+      checkExistingExport(id, { type: 'pdf' }).then(result => {
         if (result.exists) setExistingExport(result);
       }).catch(() => {});
     }
@@ -305,7 +305,7 @@ export default function InformeBuilder() {
             {saveStatus === 'saving' && <span className="text-amber-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> Guardando...</span>}
           </div>
 
-          {existingExport ? (
+          {existingExport?.fresh && existingExport.signedUrl ? (
             <div className="flex items-center gap-2">
               <a
                 href={existingExport.signedUrl || '#'}

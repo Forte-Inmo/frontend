@@ -126,15 +126,27 @@ export function useExportPDF() {
     if (!done) throw new Error('Tiempo de espera agotado (300s)');
   };
 
-  const checkExistingExport = async (informeId) => {
+  const checkExistingExport = async (informeId, { type = 'pdf' } = {}) => {
     const { data: { session } } = await supabase.auth.getSession();
     const userId = session?.user?.id;
-    if (!userId) return { exists: false };
+    if (!userId) return { exists: false, fresh: false };
 
     const baseUrl = import.meta.env.VITE_PDF_SERVICE_URL;
-    const res = await fetch(`${baseUrl}/check-existing/${informeId}/${userId}`);
-    if (!res.ok) return { exists: false };
+    const res = await fetch(`${baseUrl}/check-existing/${informeId}/${userId}?type=${type}`);
+    if (!res.ok) return { exists: false, fresh: false };
     return res.json();
+  };
+
+  const downloadExisting = async (signedUrl, filename) => {
+    const res = await fetch(signedUrl);
+    if (!res.ok) throw new Error('Error descargando PDF existente');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'informe.pdf';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const getExports = async () => {
@@ -148,5 +160,5 @@ export function useExportPDF() {
     return res.json();
   };
 
-  return { exportPDF, checkExistingExport, getExports };
+  return { exportPDF, checkExistingExport, downloadExisting, getExports };
 }

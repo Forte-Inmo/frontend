@@ -578,7 +578,7 @@ app.post('/generate-pdf', (req, res) => {
 
   supabase
     .from('pdf_exports')
-    .insert({ informe_id: informeId, user_id: userId, status: 'pending' })
+    .insert({ informe_id: informeId, user_id: userId, status: 'pending', format: 'pdf' })
     .select()
     .single()
     .then(({ data, error }) => {
@@ -620,7 +620,7 @@ app.post('/generate-booklet', (req, res) => {
 
   supabase
     .from('pdf_exports')
-    .insert({ informe_id: informeId, user_id: userId, status: 'pending' })
+    .insert({ informe_id: informeId, user_id: userId, status: 'pending', format: 'booklet' })
     .select()
     .single()
     .then(({ data, error }) => {
@@ -664,12 +664,31 @@ app.get('/pdf-result/:jobId', (req, res) => {
 
 app.get('/check-existing/:informeId/:userId', async (req, res) => {
   const { informeId, userId } = req.params;
+  const type = req.query.type || 'pdf';
+
+  const [{ data: informe, error: iErr }, { data: settings, error: sErr }] = await Promise.all([
+    supabase
+      .from('informes')
+      .select('updated_at, campo:campos(updated_at)')
+      .eq('id', informeId)
+      .maybeSingle(),
+    supabase.from('settings').select('updated_at').maybeSingle(),
+  ]);
+  if (iErr) return res.status(500).json({ error: iErr.message });
+  if (sErr) return res.status(500).json({ error: sErr.message });
+
+  const dates = [informe?.updated_at, informe?.campo?.updated_at, settings?.updated_at]
+    .filter(Boolean)
+    .map(d => new Date(d).getTime());
+  const reference = dates.length ? new Date(Math.max(...dates)) : new Date(0);
+
   const { data, error } = await supabase
     .from('pdf_exports')
     .select('id, storage_path, created_at, completed_at, status')
     .eq('informe_id', informeId)
     .eq('user_id', userId)
     .eq('status', 'done')
+    .eq('format', type)
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -681,8 +700,12 @@ app.get('/check-existing/:informeId/:userId', async (req, res) => {
     if (exportRecord.storage_path) {
       signedUrl = await getSignedUrl(exportRecord.storage_path);
     }
+    const fresh = !!exportRecord.completed_at &&
+      new Date(exportRecord.completed_at) >= reference &&
+      !!signedUrl;
     return res.json({
       exists: true,
+      fresh,
       exportId: exportRecord.id,
       storagePath: exportRecord.storage_path,
       signedUrl,
@@ -691,7 +714,7 @@ app.get('/check-existing/:informeId/:userId', async (req, res) => {
     });
   }
 
-  res.json({ exists: false });
+  res.json({ exists: false, fresh: false });
 });
 
 app.get('/exports/:userId', async (req, res) => {
