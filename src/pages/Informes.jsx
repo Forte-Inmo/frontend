@@ -481,45 +481,51 @@ export default function Informes() {
             <div
               key={informe.id}
               onClick={() => navigate(`/dashboard/builder/${informe.id}`)}
-              className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all cursor-pointer group flex items-center gap-6"
+              className="bg-white p-5 sm:p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl hover:border-emerald-200 transition-all cursor-pointer group flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6"
             >
-              <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors shrink-0">
-                <FileText className="w-7 h-7" />
-              </div>
+              {/* Icono + Información */}
+              <div className="flex items-center gap-4 min-w-0 flex-1">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors shrink-0">
+                  <FileText className="w-6 h-6 sm:w-7 sm:h-7" />
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-black text-gray-900 truncate mb-1 group-hover:text-emerald-700 transition-colors tracking-tight">{informe.titulo}</h3>
-                <div className="flex items-center gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {informe.campos?.nombre}</div>
-                  <div className="h-3 w-px bg-gray-200 hidden sm:block"></div>
-                  <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {new Date(informe.created_at).toLocaleDateString()}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg sm:text-xl font-black text-gray-900 truncate group-hover:text-emerald-700 transition-colors tracking-tight">{informe.titulo}</h3>
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm shrink-0
+                          ${informe.estado === 'publicado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {informe.estado}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs font-bold text-gray-400 uppercase tracking-widest mt-1 flex-wrap">
+                    <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {informe.campos?.nombre}</div>
+                    <div className="h-3 w-px bg-gray-200 hidden sm:block"></div>
+                    <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {new Date(informe.created_at).toLocaleDateString()}</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.1em] shadow-sm
-                      ${informe.estado === 'publicado' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {informe.estado}
-                </div>
+              {/* Acciones */}
+              <div className="flex items-center gap-2 flex-wrap sm:shrink-0 sm:justify-end">
                 {canManage && (
-                  <div className="flex items-center gap-2">
+                  <>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleExport(informe); }}
-                      className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:border-emerald-500"
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-emerald-100 hover:border-emerald-500"
                     >
                       {exportingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       <span>{exportingId === informe.id ? 'Generando...' : 'Exportar PDF'}</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleExportBooklet(informe); }}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:border-blue-500"
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-50 hover:bg-blue-500 text-blue-600 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-blue-100 hover:border-blue-500"
                     >
                       {bookletingId === informe.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                       <span>{bookletingId === informe.id ? 'Generando...' : 'Revista A3'}</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleVerVersiones(informe); }}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-gray-100"
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-gray-100"
                     >
                       <History className="w-3.5 h-3.5" /> Versiones
                       {informe.versiones_count?.[0]?.count > 0 && (
@@ -531,10 +537,11 @@ export default function Informes() {
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteInforme(informe.id); }}
                       className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      aria-label="Eliminar informe"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
-                  </div>
+                  </>
                 )}
                 <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 group-hover:bg-emerald-600 group-hover:text-white transition-all">
                   <ChevronRight className="w-5 h-5" />

@@ -53,7 +53,7 @@ export default function Login() {
       </div>
 
       {/* Panel de Login (Siempre Blanco) */}
-      <div className="relative z-10 flex flex-col justify-center ml-auto w-full max-w-[520px] min-h-screen bg-white shadow-2xl px-10 py-12 md:px-20">
+      <div className="relative z-10 flex flex-col justify-center ml-auto w-full max-w-[520px] min-h-screen bg-white shadow-2xl px-6 py-10 sm:px-10 md:px-20 md:py-12 overflow-y-auto">
 
         {/* Logos */}
         {(settings?.org1_logo_url || settings?.org2_logo_url) ? (

@@ -15,9 +15,10 @@ export const useRealtimeCursors = ({ roomName, username, throttleMs = 50, onData
   const [cursors, setCursors] = useState({});
   const channelRef = useRef(null);
   const lastUpdateRef = useRef(0);
+  const pendingRef = useRef(null);
+  const flushTimeoutRef = useRef(null);
   const colorRef = useRef(generateColor(username || 'Anonymous'));
   const clientIdRef = useRef(crypto.randomUUID());
-  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     if (!roomName || !username) return;
@@ -37,6 +38,7 @@ export const useRealtimeCursors = ({ roomName, username, throttleMs = 50, onData
         setCursors((prev) => ({
           ...prev,
           [payload.payload.clientId]: {
+            clientId: payload.payload.clientId,
             position: { x: payload.payload.x, y: payload.payload.y },
             user: { name: payload.payload.username },
             color: payload.payload.color,
@@ -60,36 +62,53 @@ export const useRealtimeCursors = ({ roomName, username, throttleMs = 50, onData
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          isSubscribedRef.current = true;
           await channel.track({ username, clientId: clientIdRef.current });
         }
       });
 
+    const sendCursor = (channel, x, y) => {
+      const payload = {
+        x,
+        y,
+        username,
+        clientId: clientIdRef.current,
+        color: colorRef.current,
+      };
+      if (channel.state === 'joined') {
+        channel.send({ type: 'broadcast', event: 'cursor-move', payload }).catch(() => undefined);
+      } else {
+        channel.httpSend('cursor-move', payload).catch(() => undefined);
+      }
+    };
+
     const handleMouseMove = (e) => {
+      pendingRef.current = { x: e.clientX, y: e.clientY };
       const now = Date.now();
       if (now - lastUpdateRef.current >= throttleMs) {
         lastUpdateRef.current = now;
-        if (channelRef.current && isSubscribedRef.current) {
-          channelRef.current.send({
-            type: 'broadcast',
-            event: 'cursor-move',
-            payload: {
-              x: e.clientX,
-              y: e.clientY,
-              username,
-              clientId: clientIdRef.current,
-              color: colorRef.current,
-            },
-          });
+        const channel = channelRef.current;
+        if (channel) {
+          const { x, y } = pendingRef.current;
+          pendingRef.current = null;
+          sendCursor(channel, x, y);
         }
       }
+      if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = setTimeout(() => {
+        const channel = channelRef.current;
+        if (channel && pendingRef.current) {
+          const { x, y } = pendingRef.current;
+          pendingRef.current = null;
+          sendCursor(channel, x, y);
+        }
+      }, throttleMs);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      isSubscribedRef.current = false;
+      if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
@@ -97,15 +116,20 @@ export const useRealtimeCursors = ({ roomName, username, throttleMs = 50, onData
   }, [roomName, username, throttleMs]);
 
   const broadcastData = (data) => {
-    if (channelRef.current && isSubscribedRef.current) {
-      channelRef.current.send({
+    const channel = channelRef.current;
+    if (!channel) return;
+    const payload = {
+      ...data,
+      clientId: clientIdRef.current,
+    };
+    if (channel.state === 'joined') {
+      channel.send({
         type: 'broadcast',
         event: 'content-update',
-        payload: {
-          ...data,
-          clientId: clientIdRef.current
-        },
+        payload,
       });
+    } else {
+      channel.httpSend('content-update', payload).catch(() => undefined);
     }
   };
 

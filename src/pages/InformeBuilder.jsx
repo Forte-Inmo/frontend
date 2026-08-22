@@ -68,7 +68,24 @@ export default function InformeBuilder() {
 
   const [activeLocks, setActiveLocks] = useState({});
   const [activeColorPicker, setActiveColorPicker] = useState(null);
+  const editorRef = useRef(null);
+  const [canvasScale, setCanvasScale] = useState(1);
+  const PAGE_WIDTH = 794;
+  const PAGE_HEIGHT = 1123;
   const displayName = profile?.full_name?.split('-')[0]?.split('(')[0]?.trim() || user?.email?.split('@')[0] || 'Colaborador';
+
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const update = () => {
+      const avail = el.clientWidth - 48;
+      setCanvasScale(Math.min(1, Math.max(0.3, avail / PAGE_WIDTH)));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [loading]);
 
   const saveInforme = useCallback(async (data, setStatus) => {
     setStatus('saving');
@@ -243,17 +260,26 @@ export default function InformeBuilder() {
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col font-sans">
       {/* Cursores Remotos */}
       {Object.values(cursors).map(c => (
-        <div key={c.id} className="fixed z-[9999] pointer-events-none transition-all duration-150 ease-out" style={{ left: c.x, top: c.y }}>
-          <MousePointer2 className="w-5 h-5 text-emerald-500 fill-emerald-500 shadow-xl" />
-          <div className="ml-4 px-2 py-1 bg-emerald-500 text-white text-[10px] font-black rounded-md shadow-lg whitespace-nowrap uppercase tracking-tighter">
-            {c.userName}
+        <div
+          key={c.clientId}
+          className="fixed z-[9999] pointer-events-none transition-transform ease-linear"
+          style={{
+            left: 0,
+            top: 0,
+            transform: `translate(${c.position.x}px, ${c.position.y}px)`,
+            transitionDuration: '50ms',
+          }}
+        >
+          <MousePointer2 className="w-5 h-5 shadow-xl" style={{ color: c.color, fill: c.color }} />
+          <div className="ml-4 px-2 py-1 text-white text-[10px] font-black rounded-md shadow-lg whitespace-nowrap uppercase tracking-tighter" style={{ backgroundColor: c.color }}>
+            {c.user.name}
           </div>
         </div>
       ))}
 
       {/* Header */}
-      <div className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-6">
+      <div className="h-20 bg-white border-b border-gray-200 px-4 sm:px-8 flex items-center justify-between gap-3 shrink-0 z-20">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
           {(isEditingMap || activeBlockIndex !== null || isEditingPage) && (
             <button 
               onClick={() => {
@@ -261,20 +287,20 @@ export default function InformeBuilder() {
                 setActiveBlockIndex(null);
                 setIsEditingPage(false);
               }} 
-              className="p-3 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-left duration-200"
+              className="p-3 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-left duration-200 shrink-0"
             >
               <ChevronLeft className="w-5 h-5 text-gray-400" />
             </button>
           )}
-          <div className="h-10 w-[1px] bg-gray-100"></div>
-          <div>
-            <h1 className="text-sm font-black text-gray-900 tracking-tight uppercase">{informe?.nombre || 'Borrador'}</h1>
-            <div className="text-[10px] text-gray-400 tracking-[0.3em] font-black uppercase mt-0.5">TERRENO: {campoMetadata?.nombre || '...'}</div>
+          <div className="h-10 w-[1px] bg-gray-100 hidden sm:block"></div>
+          <div className="min-w-0">
+            <h1 className="text-sm font-black text-gray-900 tracking-tight uppercase truncate">{informe?.nombre || 'Borrador'}</h1>
+            <div className="text-[10px] text-gray-400 tracking-[0.3em] font-black uppercase mt-0.5 hidden md:block">TERRENO: {campoMetadata?.nombre || '...'}</div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-2xl border bg-gray-50/50">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-widest px-3 sm:px-5 py-2.5 rounded-2xl border bg-gray-50/50 whitespace-nowrap hidden sm:flex">
             {saveStatus === 'saved' && <span className="text-emerald-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Sincronizado</span>}
             {saveStatus === 'saving' && <span className="text-amber-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> Guardando...</span>}
           </div>
@@ -285,28 +311,28 @@ export default function InformeBuilder() {
                 href={existingExport.signedUrl || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest shadow-sm"
+                className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest shadow-sm whitespace-nowrap"
               >
-                <Download className="w-4 h-4" /> Descargar PDF
+                <Download className="w-4 h-4" /> <span className="hidden sm:inline">Descargar PDF</span>
               </a>
             </div>
           ) : (
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 sm:px-4 whitespace-nowrap hidden sm:block">
               Sin exportaciones
             </div>
           )}
           <button 
             onClick={() => navigate('/dashboard/informes')}
-            className="flex items-center gap-2 px-6 py-2.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-100 hover:border-red-500 shadow-sm group"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-100 hover:border-red-500 shadow-sm group whitespace-nowrap"
           >
-            <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" /> Salir
+            <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden sm:inline">Salir</span>
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar (Miniaturas) */}
-        <div className="w-[380px] shrink-0 bg-white border-r border-gray-200 flex flex-col z-10 shadow-xl shadow-gray-100/50 overflow-hidden">
+        <div className="w-[300px] xl:w-[380px] shrink-0 bg-white border-r border-gray-200 flex flex-col z-10 shadow-xl shadow-gray-100/50 overflow-hidden">
           <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar">
             {isEditingPage && isEditingMap && activePage?.type === 'UBICACION' ? (
               /* Vista de Edición de Mapa */
@@ -1800,10 +1826,18 @@ export default function InformeBuilder() {
         </div>
 
         {/* Editor Principal */}
-        <div className="flex-1 overflow-auto bg-gray-100 flex flex-col items-center py-20 px-6 gap-20 custom-scrollbar" style={{ backgroundImage: "radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }}>
+        <div ref={editorRef} className="flex-1 overflow-auto bg-gray-100 flex flex-col items-center py-10 px-3 sm:px-6 gap-12 custom-scrollbar" style={{ backgroundImage: "radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }}>
           {pagesData.map((page, pageIndex) => (
             <div
               key={page.id}
+              className="relative shrink-0"
+              style={{ width: PAGE_WIDTH * canvasScale, height: PAGE_HEIGHT * canvasScale }}
+            >
+              <div
+                className="absolute top-0 left-0 origin-top-left"
+                style={{ transform: `scale(${canvasScale})` }}
+              >
+            <div
               id={`page-${pageIndex}`}
               onClickCapture={() => {
                 setActivePageIndex(pageIndex);
@@ -1824,7 +1858,7 @@ export default function InformeBuilder() {
                   setActiveBlockIndex(null);
                 }
               }}
-              className={`bg-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative rounded-[2px] overflow-hidden transition-all duration-500 shrink-0
+              className={`bg-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative rounded-[2px] overflow-hidden transition-all duration-500
                    ${activePageIndex === pageIndex ? 'scale-100 z-10' : 'scale-[0.98] opacity-80 blur-[1px]'}`}
               style={{ width: '210mm', height: '297mm' }}
             >
@@ -1834,6 +1868,8 @@ export default function InformeBuilder() {
               {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={pageIndex} updatePage={handleUpdatePage} isEditMode={true} uploadImage={uploadImage} activeBlockIndex={activeBlockIndex} setActiveBlockIndex={setActiveBlockIndex} settings={settings} acquireLock={acquireLock} releaseLock={releaseLock} isLockedByOther={isLockedByOther} activeLocks={activeLocks} />}
               {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={pageIndex} updatePage={handleUpdatePage} updatePageSlice={updatePageSlice} addSlice={addSlice} uploadImage={uploadImage} settings={settings} acquireLock={acquireLock} releaseLock={releaseLock} isLockedByOther={isLockedByOther} activeLocks={activeLocks} />}
               {page.type === 'TEXTO_FOTOS' && <TextoFotosPage page={page} pageIndex={pageIndex} updatePage={handleUpdatePage} settings={settings} acquireLock={acquireLock} releaseLock={releaseLock} isLockedByOther={isLockedByOther} activeLocks={activeLocks} />}
+            </div>
+              </div>
             </div>
           ))}
         </div>

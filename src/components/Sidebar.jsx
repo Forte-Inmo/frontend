@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { LayoutDashboard, Layers, Map as MapIcon, LineChart, Settings, LogOut, Users, Shield, User, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, Layers, Map as MapIcon, LineChart, Settings, LogOut, Users, Shield, User, ChevronUp, Menu, X } from 'lucide-react';
 
 const menuItems = [
   { name: 'Inicio', icon: LayoutDashboard, path: '/dashboard' },
@@ -18,10 +18,15 @@ export default function Sidebar() {
   const { settings } = useSettings();
   const { hasPermission, forceLogout, profile } = useAuth();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const userInitials = profile?.full_name 
     ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
     : profile?.email?.charAt(0).toUpperCase() || '?';
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     try {
@@ -32,7 +37,101 @@ export default function Sidebar() {
     }
   };
 
+  const Logo = () => (
+    <div className="flex items-center gap-2 px-2">
+      {settings?.org1_logo_url ? (
+        <img src={settings.org1_logo_url} alt="Logo" className="max-h-10 w-auto object-contain" />
+      ) : (
+        <>
+          <div className="w-7 h-7 bg-[#107549] text-white flex items-center justify-center rounded text-sm asterisk-icon font-bold">
+            *
+          </div>
+          <span className="font-bold text-xl text-[#08060d]">{settings?.website_name || 'Forte'}</span>
+        </>
+      )}
+    </div>
+  );
+
+  const NavItems = () => (
+    <nav className="flex-1 space-y-1">
+      {menuItems.filter(item => !item.permission || hasPermission(item.permission)).map((item) => {
+        const Icon = item.icon;
+        const isActive = pathname === item.path;
+
+        return (
+          <NavLink
+            key={item.name}
+            to={item.path}
+            onClick={() => setIsMobileNavOpen(false)}
+            className={`flex items-center gap-4 px-4 py-3 rounded-[20px] transition-colors duration-200 text-sm font-medium ${
+              isActive
+                ? 'bg-[#107549] text-white'
+                : 'text-[#6b6375] hover:bg-gray-100 hover:text-[#08060d]'
+            }`}
+          >
+            <Icon className="w-[20px] h-[20px]" />
+            {item.name}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+
   return (
+    <>
+      {/* ── Mobile Top Bar ── */}
+      <div className="md:hidden sticky top-0 z-40 h-14 bg-white border-b border-[#e5e4e7] flex items-center justify-between px-4 shrink-0">
+        <Logo />
+        <button
+          onClick={() => setIsMobileNavOpen(true)}
+          className="p-2 rounded-xl hover:bg-gray-100 text-[#6b6375] transition-colors"
+          aria-label="Abrir menú"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* ── Mobile Drawer ── */}
+      {isMobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileNavOpen(false)} />
+          <div className="absolute left-0 top-0 h-full w-[280px] bg-white shadow-2xl flex flex-col p-5 animate-slide-in-left">
+            <div className="flex items-center justify-between mb-6">
+              <Logo />
+              <button onClick={() => setIsMobileNavOpen(false)} className="p-2 rounded-xl hover:bg-gray-100 text-[#6b6375] transition-colors" aria-label="Cerrar menú">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {NavItems()}
+            <div className="mt-auto border-t border-gray-100 pt-4 space-y-1">
+              <NavLink
+                to="/dashboard/perfil"
+                onClick={() => setIsMobileNavOpen(false)}
+                className="flex items-center gap-4 px-4 py-3 rounded-[20px] text-sm font-medium text-[#6b6375] hover:bg-gray-100 hover:text-[#08060d] transition-colors"
+              >
+                <User className="w-[20px] h-[20px]" /> Ver Perfil
+              </NavLink>
+              {hasPermission('settings:manage') && (
+                <NavLink
+                  to="/dashboard/ajustes"
+                  onClick={() => setIsMobileNavOpen(false)}
+                  className="flex items-center gap-4 px-4 py-3 rounded-[20px] text-sm font-medium text-[#6b6375] hover:bg-gray-100 hover:text-[#08060d] transition-colors"
+                >
+                  <Settings className="w-[20px] h-[20px]" /> Ajustes
+                </NavLink>
+              )}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-[20px] text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-[20px] h-[20px]" /> Cerrar Sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop Sidebar ── */}
     <aside className="w-[280px] flex-shrink-0 flex flex-col h-screen border-r border-[#e5e4e7] bg-white p-5 sticky top-0 hidden md:flex font-sans">
       {/* Logo Area */}
       <div className="flex items-center gap-2 mb-8 px-2">
@@ -128,5 +227,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

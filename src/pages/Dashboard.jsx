@@ -1,11 +1,13 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import MapWidget from '../components/MapWidget';
 import { FileText, Layers, Users, ArrowUpRight, Clock, MapPin } from 'lucide-react';
 
 export default function Dashboard() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     campos: 0,
     informes: 0,
@@ -72,7 +74,7 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white p-6 rounded-[2.5rem] border border-[#e5e4e7] shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
                 <Layers className="w-6 h-6" />
@@ -102,7 +104,7 @@ export default function Dashboard() {
           </div>
 
           {/* Map Widget Section */}
-          <div className="bg-white rounded-[3rem] border border-[#e5e4e7] p-4 h-[400px] relative shadow-sm">
+          <div className="bg-white rounded-[3rem] border border-[#e5e4e7] p-4 h-[400px] relative shadow-sm isolate">
             <div className="absolute top-8 right-10 z-[100] flex items-center gap-2 pointer-events-none">
               <span className="flex h-3 w-3 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -122,14 +124,22 @@ export default function Dashboard() {
               <Clock className="w-5 h-5 text-emerald-600" />
               Informes Recientes
             </h3>
-            <button className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-full transition-colors">
+            <button
+              onClick={() => navigate('/dashboard/informes')}
+              className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-full transition-colors"
+              aria-label="Ver todos los informes"
+            >
               <ArrowUpRight className="w-5 h-5" />
             </button>
           </div>
 
           <div className="space-y-6 flex-1 overflow-y-auto">
             {recentInformes.length > 0 ? recentInformes.map((inf) => (
-              <div key={inf.id} className="group cursor-pointer">
+              <div
+                key={inf.id}
+                className="group cursor-pointer"
+                onClick={() => navigate(`/dashboard/builder/${inf.id}`)}
+              >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
                     <FileText className="w-6 h-6 text-gray-400 group-hover:text-emerald-600" />
@@ -153,7 +163,10 @@ export default function Dashboard() {
             )}
           </div>
 
-          <button className="w-full bg-gray-50 hover:bg-gray-100 text-[#08060d] font-bold py-4 rounded-2xl mt-8 transition-colors text-sm">
+          <button
+            onClick={() => navigate('/dashboard/informes')}
+            className="w-full bg-gray-50 hover:bg-gray-100 text-[#08060d] font-bold py-4 rounded-2xl mt-8 transition-colors text-sm"
+          >
             Ver todos los informes
           </button>
         </div>

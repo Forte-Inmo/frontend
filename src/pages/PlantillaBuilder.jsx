@@ -42,6 +42,23 @@ export default function PlantillaBuilder() {
   const [loading, setLoading] = useState(true);
   const [isNew, setIsNew] = useState(false);
   const [activeColorPicker, setActiveColorPicker] = useState(null);
+  const editorRef = useRef(null);
+  const [canvasScale, setCanvasScale] = useState(1);
+  const PAGE_WIDTH = 794;
+  const PAGE_HEIGHT = 1123;
+
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const update = () => {
+      const avail = el.clientWidth - 48;
+      setCanvasScale(Math.min(1, Math.max(0.3, avail / PAGE_WIDTH)));
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [loading]);
 
   const brandColors = (settings?.brand_colors && Object.keys(settings.brand_colors).length > 0) ? settings.brand_colors : {
     primary: '#107549', secondary: '#003399', accent: '#ccff00', dark: '#001a4d'
@@ -197,44 +214,44 @@ export default function PlantillaBuilder() {
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col font-sans">
-      <div className="h-20 bg-white border-b border-gray-200 px-8 flex items-center justify-between shrink-0 z-20">
-        <div className="flex items-center gap-6">
+      <div className="h-20 bg-white border-b border-gray-200 px-4 sm:px-8 flex items-center justify-between gap-3 shrink-0 z-20">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
           {(isEditingMap || activeBlockIndex !== null || isEditingPage) && (
             <button
               onClick={() => { setIsEditingMap(false); setActiveBlockIndex(null); setIsEditingPage(false); }}
-              className="p-3 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-left duration-200"
+              className="p-3 hover:bg-gray-50 rounded-2xl transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-left duration-200 shrink-0"
             >
               <ChevronLeft className="w-5 h-5 text-gray-400" />
             </button>
           )}
-          <div className="h-10 w-[1px] bg-gray-100"></div>
-          <div>
+          <div className="h-10 w-[1px] bg-gray-100 hidden sm:block"></div>
+          <div className="min-w-0">
             <input
               defaultValue={plantilla?.nombre || 'Plantilla'}
               onBlur={saveName}
-              className="text-sm font-black text-gray-900 tracking-tight uppercase bg-transparent border-b-2 border-transparent focus:border-emerald-500 focus:outline-none"
+              className="text-sm font-black text-gray-900 tracking-tight uppercase bg-transparent border-b-2 border-transparent focus:border-emerald-500 focus:outline-none max-w-[60vw]"
             />
-            <div className="text-[10px] text-gray-400 tracking-[0.3em] font-black uppercase mt-0.5">PLANTILLA</div>
+            <div className="text-[10px] text-gray-400 tracking-[0.3em] font-black uppercase mt-0.5 hidden md:block">PLANTILLA</div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-2xl border bg-gray-50/50">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-widest px-3 sm:px-5 py-2.5 rounded-2xl border bg-gray-50/50 whitespace-nowrap hidden sm:flex">
             {saveStatus === 'saved' && <span className="text-emerald-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Sincronizado</span>}
             {saveStatus === 'saving' && <span className="text-amber-600 flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> Guardando...</span>}
           </div>
 
           <button
             onClick={() => navigate('/dashboard/ajustes')}
-            className="flex items-center gap-2 px-6 py-2.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-100 hover:border-red-500 shadow-sm group"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2.5 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white rounded-2xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-100 hover:border-red-500 shadow-sm group whitespace-nowrap"
           >
-            <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" /> Salir
+            <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" /> <span className="hidden sm:inline">Salir</span>
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-[380px] shrink-0 bg-white border-r border-gray-200 flex flex-col z-10 shadow-xl shadow-gray-100/50 overflow-hidden">
+        <div className="w-[300px] xl:w-[380px] shrink-0 bg-white border-r border-gray-200 flex flex-col z-10 shadow-xl shadow-gray-100/50 overflow-hidden">
           <div className="flex-1 overflow-y-auto flex flex-col custom-scrollbar">
             {isEditingPage && isEditingMap && activePage?.type === 'UBICACION' ? (
               <div className="p-8 space-y-8 animate-in fade-in slide-in-from-right duration-300">
@@ -1661,10 +1678,18 @@ export default function PlantillaBuilder() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-gray-100 flex flex-col items-center py-20 px-6 gap-20 custom-scrollbar" style={{ backgroundImage: "radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }}>
+        <div ref={editorRef} className="flex-1 overflow-auto bg-gray-100 flex flex-col items-center py-10 px-3 sm:px-6 gap-12 custom-scrollbar" style={{ backgroundImage: "radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }}>
           {pagesData.map((page, pageIndex) => (
             <div
               key={page.id}
+              className="relative shrink-0"
+              style={{ width: PAGE_WIDTH * canvasScale, height: PAGE_HEIGHT * canvasScale }}
+            >
+              <div
+                className="absolute top-0 left-0 origin-top-left"
+                style={{ transform: `scale(${canvasScale})` }}
+              >
+            <div
               id={`page-${pageIndex}`}
               onClickCapture={() => {
                 setActivePageIndex(pageIndex);
@@ -1676,7 +1701,7 @@ export default function PlantillaBuilder() {
                 else if (page.type === 'DINAMICA') { setIsEditingMap(false); setActiveBlockIndex(0); }
                 else { setIsEditingMap(false); setActiveBlockIndex(null); }
               }}
-              className={`bg-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative rounded-[2px] overflow-hidden transition-all duration-500 shrink-0
+              className={`bg-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] relative rounded-[2px] overflow-hidden transition-all duration-500
                 ${activePageIndex === pageIndex ? 'scale-100 z-10' : 'scale-[0.98] opacity-80 blur-[1px]'}`}
               style={{ width: '210mm', height: '297mm' }}
             >
@@ -1686,6 +1711,8 @@ export default function PlantillaBuilder() {
               {page.type === 'DINAMICA' && <DinamicaPage page={page} pageIndex={pageIndex} updatePage={updatePage} isEditMode={true} uploadImage={uploadImage} activeBlockIndex={activeBlockIndex} setActiveBlockIndex={setActiveBlockIndex} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
               {page.type === 'ANALISIS_SUELO' && <AnalisisSueloPage page={page} pageIndex={pageIndex} updatePage={updatePage} updatePageSlice={updatePageSlice} addSlice={addSlice} uploadImage={uploadImage} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
               {page.type === 'TEXTO_FOTOS' && <TextoFotosPage page={page} pageIndex={pageIndex} updatePage={updatePage} settings={settings} acquireLock={() => {}} releaseLock={() => {}} isLockedByOther={() => false} activeLocks={{}} />}
+            </div>
+              </div>
             </div>
           ))}
         </div>

@@ -44,7 +44,7 @@ export default function MapWidget() {
   };
 
   return (
-    <div className="w-full h-full bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100 relative group">
+    <div className="w-full h-full bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100 relative group isolate">
       <MapContainer 
         center={[-36.62, -64.29]} 
         zoom={13} 
