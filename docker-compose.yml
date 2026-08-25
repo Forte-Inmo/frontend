@@ -9,9 +9,9 @@ services:
         VITE_PDF_SERVICE_URL: /pdf-api
     restart: unless-stopped
     ports:
-      - "89:80"
+      - "3000:80"
     networks:
-      - dokploy-network
+      - app-network
 
   pdf-service:
     build:
@@ -27,9 +27,12 @@ services:
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM:-noreply@forteinmo.com}
       - APP_URL=${APP_URL}
+      - RENDER_URL_HOST=${RENDER_URL_HOST:-host.docker.internal}
+    extra_hosts:
+      - "localhost:host-gateway"
     networks:
-      - dokploy-network
+      - app-network
 
 networks:
-  dokploy-network:
-    external: true
+  app-network:
+    driver: bridge

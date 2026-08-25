@@ -37,6 +37,12 @@ const SMTP_FROM = process.env.SMTP_FROM || 'noreply@forteinmo.com';
 
 const APP_URL = process.env.APP_URL || 'https://app.forteinmo.com';
 
+const RENDER_URL_HOST = process.env.RENDER_URL_HOST || '';
+function resolveRenderUrl(url) {
+  if (!RENDER_URL_HOST) return url;
+  return url.replace(/\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?/g, (m) => m.replace(/\/\/(?:localhost|127\.0\.0\.1)/, `//${RENDER_URL_HOST}`));
+}
+
 const jobs = new Map();
 const JOB_TIMEOUT = parseInt(process.env.JOB_TIMEOUT || '600', 10) * 1000;
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
@@ -565,7 +571,7 @@ app.post('/generate-pdf', (req, res) => {
   const job = {
     id: jobId,
     exportId: null,
-    url,
+    url: resolveRenderUrl(url),
     informeId,
     userId,
     userEmail: userEmail || '',
@@ -577,6 +583,7 @@ app.post('/generate-pdf', (req, res) => {
     error: null,
     createdAt: Date.now(),
   };
+
   jobs.set(jobId, job);
 
   supabase
@@ -607,7 +614,7 @@ app.post('/generate-booklet', (req, res) => {
   const job = {
     id: jobId,
     exportId: null,
-    url,
+    url: resolveRenderUrl(url),
     informeId,
     userId,
     userEmail: userEmail || '',
