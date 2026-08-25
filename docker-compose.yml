@@ -8,8 +8,8 @@ services:
         VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
         VITE_PDF_SERVICE_URL: /pdf-api
     restart: unless-stopped
-    ports:
-      - "3000:80"
+    expose:
+      - "80"
     networks:
       - app-network
 
